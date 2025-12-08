@@ -188,54 +188,61 @@ const filtered = computed(() => {
 <template>
   <div ref="wrapRef" class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 flex-1 min-h-0 h-full">
     <!-- Toolbar -->
-    <div ref="toolbarRef" class="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-2 w-full shrink-0">
-        <!-- Left -->
-        <div class="flex items-center gap-2 min-w-0">
-            <span class="text-surface-500 dark:text-surface-400 text-sm"> Network Interfaces
-            ({{ filtered.length }})
-            </span>
-        </div>
-        <!-- Right -->
-        <div class="flex flex-wrap items-center gap-2 justify-end">
-            <!-- MultiSelect -->
-            <MultiSelect
-            v-model="visibleColumns"
-            :options="[
-                { label: 'Name', value: 'name' },
-                { label: 'State', value: 'oper' },
-                { label: 'IPv4', value: 'ipv4' },
-                { label: 'IPv6', value: 'ipv6' },
-                { label: 'RX Bps', value: 'rx_bytes_per_sec' },
-                { label: 'TX Bps', value: 'tx_bytes_per_sec' },
-                { label: 'MTU', value: 'mtu' },
-                { label: 'MAC', value: 'mac' },
-            ]"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Columns"
-            class="min-w-40"
-            display="chip" 
-            :maxSelectedLabels="4" 
-            />
-            <!-- Search -->
-            <InputGroup class="max-w-[220px]">
+    <div
+      ref="toolbarRef"
+      class="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-2 w-full shrink-0"
+    >
+      <!-- Left -->
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="text-surface-500 dark:text-surface-400 text-sm">
+          Network Interfaces ({{ filtered.length }})
+        </span>
+      </div>
+
+      <!-- Right -->
+      <div class="flex flex-wrap items-center gap-2 justify-end">
+        <!-- MultiSelect -->
+        <MultiSelect
+          v-model="visibleColumns"
+          :options="[
+            { label: 'Name', value: 'name' },
+            { label: 'State', value: 'oper' },
+            { label: 'IPv4', value: 'ipv4' },
+            { label: 'IPv6', value: 'ipv6' },
+            { label: 'RX Bps', value: 'rx_bytes_per_sec' },
+            { label: 'TX Bps', value: 'tx_bytes_per_sec' },
+            { label: 'MTU', value: 'mtu' },
+            { label: 'MAC', value: 'mac' },
+          ]"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Columns"
+          class="min-w-40"
+          display="chip"
+          :maxSelectedLabels="4"
+        />
+
+        <!-- Search + Refresh -->
+        <div class="flex items-center gap-2">
+          <InputGroup class="max-w-[220px]">
             <InputGroupAddon><i class="pi pi-search"></i></InputGroupAddon>
             <InputText
-                v-model="globalFilter"
-                placeholder="Search (name/ip/mac...)"
-                class="flex-1 min-w-0"
+              v-model="globalFilter"
+              placeholder="Search (name/ip/mac...)"
+              class="flex-1 min-w-0"
             />
-            </InputGroup>
-            <!-- Refresh -->
-            <Button
+          </InputGroup>
+
+          <Button
             outlined
             icon="pi pi-refresh"
             severity="secondary"
             class="w-9 h-9"
             :loading="loading"
             @click="reloadInterfaces"
-            />
+          />
         </div>
+      </div>
     </div>
     <!-- Table -->
     <DataTable
