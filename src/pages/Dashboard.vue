@@ -684,7 +684,7 @@ onBeforeUnmount(() => {
           <Card>
             <template #title>
               <div v-if="defaultIface">
-                Live Traffic ({{ defaultIface.name }})
+                Live Traffic - {{ defaultIface.display_name }}
               </div>
               <div v-else>
                 Live Traffic (No default interface)
