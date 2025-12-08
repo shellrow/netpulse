@@ -62,7 +62,13 @@ function fmtThroughput(v?: number): string {
 
 const loading = ref(false);
 const rows = ref<NetworkInterface[]>([]);
-const selectedInterface = ref<NetworkInterface | null>(null);
+
+const selectedIndex = ref<number | null>(null);
+const selectedInterface = computed<NetworkInterface | null>(() => {
+  if (selectedIndex.value == null) return null;
+  return rows.value.find(r => r.index === selectedIndex.value) ?? null;
+});
+
 const dialogVisible = ref(false);
 const globalFilter = ref("");
 const visibleColumns = ref<string[]>([
@@ -121,14 +127,15 @@ async function onInterfacesUpdated() {
 }
 
 const onRowSelect = (event: DataTableRowSelectEvent) => {
-    const iface: NetworkInterface = event.data;
-    selectedInterface.value = iface;
-    dialogVisible.value = true;
+  const iface: NetworkInterface = event.data;
+  selectedIndex.value = iface.index;
+  dialogVisible.value = true;
 };
 
 const onRowUnselect = (_event: DataTableRowSelectEvent) => {
-    dialogVisible.value = false;
-}
+  dialogVisible.value = false;
+  selectedIndex.value = null;
+};
 
 onMounted(async () => {
   await fetchInterfaces();
