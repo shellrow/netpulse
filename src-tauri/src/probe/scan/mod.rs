@@ -2,10 +2,9 @@ pub mod icmp;
 pub mod quic;
 pub mod tcp;
 pub mod neigh;
+pub mod tuner;
 
 use crate::model::scan::TargetPortsPreset;
-
-pub const PORTS_CONCURRENCY: usize = 100;
 
 pub fn expand_ports(preset: &TargetPortsPreset, user_ports: &[u16]) -> Vec<u16> {
     match preset {

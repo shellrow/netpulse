@@ -11,10 +11,9 @@ use tokio::sync::{oneshot, Mutex};
 
 use crate::model::scan::{HostScanProgress, HostScanReport, HostScanSetting, HostState};
 use crate::probe::packet::{build_icmp_echo_bytes, parse_icmp_echo_v4, parse_icmp_echo_v6};
+use crate::probe::scan::tuner::hosts_concurrency;
 use crate::socket::icmp::{AsyncIcmpSocket, IcmpConfig, IcmpKind};
 use crate::socket::SocketFamily;
-
-pub const HOSTS_CONCURRENCY: usize = 256;
 
 struct Pending {
     #[allow(dead_code)]
@@ -67,7 +66,7 @@ pub async fn host_scan(
         .payload
         .clone()
         .unwrap_or_else(|| "np:hs".to_string());
-    let concurrency = setting.concurrency.unwrap_or(HOSTS_CONCURRENCY);
+    let concurrency = setting.concurrency.unwrap_or(hosts_concurrency());
     if !setting.ordered {
         setting.targets.shuffle(&mut thread_rng());
     }
