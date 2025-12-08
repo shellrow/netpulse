@@ -291,7 +291,7 @@ onBeforeUnmount(() => {
                 :sortOrder="1"
               >
                 <Column field="port" header="Port" style="width: 96px" sortable />
-                <Column header="State" style="width: 120px" sortable>
+                <Column header="State" style="width: 120px" sortField="state" sortable>
                   <template #body="{ data }">
                     <Tag
                       :value="data.state"
@@ -299,7 +299,7 @@ onBeforeUnmount(() => {
                     />
                   </template>
                 </Column>
-                <Column header="RTT" sortable>
+                <Column header="RTT" sortField="rtt_ms" sortable>
                   <template #body="{ data }">{{ fmtMs(data.rtt_ms) }}</template>
                 </Column>
                 <Column header="Message">

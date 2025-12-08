@@ -238,19 +238,21 @@ const filtered = computed(() => {
       paginator
       :rows="15"
       :rowsPerPageOptions="[15, 30, 50, 100]"
-      sortMode="multiple"
+      sortMode="single"
       scrollable
       :scrollHeight="tableHeight"
       class="text-sm"
       stripedRows
       selectionMode="single"
       @rowSelect="onRowSelect"
-      @rowUnselect="onRowUnselect"
+      @rowUnselect="onRowUnselect" 
+      resizableColumns 
+      columnResizeMode="fit"
     >
       <!-- Name -->
       <Column v-if="visibleColumns.includes('name')" field="display_name" header="Name" sortable />
       <!-- State -->
-      <Column v-if="visibleColumns.includes('oper')" header="State" :sortable="true">
+      <Column v-if="visibleColumns.includes('oper')" header="State" sortField="oper_state" :sortable="true">
         <template #body="{ data }">
           <Tag
             :value="data.oper_state ?? '-'"
@@ -260,7 +262,7 @@ const filtered = computed(() => {
         </template>
       </Column>
       <!-- MAC -->
-      <Column v-if="visibleColumns.includes('mac')" field="mac" header="MAC" sortable style="min-width: 150px">
+      <Column v-if="visibleColumns.includes('mac')" sortField="mac_addr" header="MAC" sortable style="min-width: 150px">
         <template #body="{ data }">{{ data.mac_addr ?? '-' }}</template>
       </Column>
       <!-- IPv4 -->

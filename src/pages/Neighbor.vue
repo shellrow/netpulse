@@ -173,12 +173,12 @@ onBeforeUnmount(() => {
                   :sortOrder="1"
                 >
                   <Column field="ip_addr" header="IP" sortable />
-                  <Column header="State" style="width: 120px" sortable>
+                  <Column header="State" style="width: 120px" sortField="state" sortable>
                     <template #body="{ data }">
                       <Tag :value="data.state" :severity="data.state==='Alive' ? 'success' : 'warn'" />
                     </template>
                   </Column>
-                  <Column header="RTT" sortable>
+                  <Column header="RTT" sortField="rtt_ms" sortable>
                     <template #body="{ data }">{{ fmtMs(data.rtt_ms) }}</template>
                   </Column>
                   <Column header="Message">
@@ -218,7 +218,7 @@ onBeforeUnmount(() => {
                   :rows="10"
                   paginator
                   :rowsPerPageOptions="[10,20,50]"
-                  sortMode="multiple"
+                  sortMode="single"
                 >
                   <Column field="ip_addr" header="IP" sortable />
                   <Column field="mac_addr" header="MAC" sortable>

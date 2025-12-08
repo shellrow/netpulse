@@ -118,10 +118,13 @@ onBeforeUnmount(() => {
       paginator
       :rows="20"
       :rowsPerPageOptions="[20,50,100]"
+      sortMode="single"
       scrollable
       :scrollHeight="tableHeight"
       class="text-sm"
-      stripedRows
+      stripedRows 
+      resizableColumns 
+      columnResizeMode="fit"
     >
       <Column field="destination" header="Destination" sortable style="min-width: 220px">
         <template #body="{ data }">

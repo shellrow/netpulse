@@ -275,7 +275,9 @@ onBeforeUnmount(() => {
       :scrollHeight="tableHeight"
       class="text-sm"
       stripedRows
-      sortMode="multiple"
+      sortMode="single"
+      resizableColumns 
+      columnResizeMode="fit"
     >
       <Column field="protoLabel" header="Proto" style="width: 90px" sortable>
         <template #body="{ data }">
