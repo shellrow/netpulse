@@ -5,7 +5,7 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import type { NetworkInterface } from "../types/net"; 
 import { ipListToString, formatBps, formatBytesPerSec, formatBytes } from "../types/net"; 
 import { DataTableRowSelectEvent } from 'primevue/datatable';
-import { fmtIfType, fmtDate, hexFlags, severityByOper} from "../utils/formatter";
+import { fmtIfType, fmtDate, hexFlags, severityByOper, shortenIpList} from "../utils/formatter";
 
 const wrapRef = ref<HTMLElement|null>(null);
 const toolbarRef = ref<HTMLElement|null>(null);
@@ -268,13 +268,13 @@ const filtered = computed(() => {
       <!-- IPv4 -->
       <Column v-if="visibleColumns.includes('ipv4')" header="IPv4" :sortable="false" style="min-width: 180px">
         <template #body="{ data }">
-          {{ ipListToString(data.ipv4) || '-' }}
+          {{ shortenIpList(data.ipv4) }}
         </template>
       </Column>
       <!-- IPv6 -->
       <Column v-if="visibleColumns.includes('ipv6')" header="IPv6" :sortable="false" style="min-width: 220px">
         <template #body="{ data }">
-          {{ ipListToString(data.ipv6) || '-' }}
+          {{ shortenIpList(data.ipv6) }}
         </template>
       </Column>
       <!-- RX Bps -->
