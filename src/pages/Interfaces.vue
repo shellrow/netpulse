@@ -264,7 +264,7 @@ const filtered = computed(() => {
         <template #body="{ data }">{{ data.mac_addr ?? '-' }}</template>
       </Column>
       <!-- IPv4 -->
-      <Column v-if="visibleColumns.includes('ipv4')" header="IPv4" :sortable="false" style="min-width: 220px">
+      <Column v-if="visibleColumns.includes('ipv4')" header="IPv4" :sortable="false" style="min-width: 180px">
         <template #body="{ data }">
           {{ ipListToString(data.ipv4) || '-' }}
         </template>
@@ -288,7 +288,7 @@ const filtered = computed(() => {
         </template>
       </Column>
       <!-- MTU -->
-      <Column v-if="visibleColumns.includes('mtu')" field="mtu" header="MTU" sortable style="width: 96px">
+      <Column v-if="visibleColumns.includes('mtu')" field="mtu" header="MTU" sortable style="width: 80px">
         <template #body="{ data }">{{ data.mtu ?? '-' }}</template>
       </Column>
     </DataTable>
