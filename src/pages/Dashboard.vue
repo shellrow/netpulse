@@ -11,6 +11,7 @@ import { usePrivacyGate } from "../composables/usePrivacyGate";
 import type { ChartData, ChartOptions } from "chart.js";
 import { hexToRgba } from "../utils/color";
 
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 const { publicIpVisible, togglePublicIp, pubIpGate, hostnameVisible, toggleHostname } =
   usePrivacyGate();

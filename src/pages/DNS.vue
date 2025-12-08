@@ -43,6 +43,7 @@ const hasAny = (obj: DomainLookupInfo | null) =>
     (obj.txt?.length ?? 0) > 0 ||
     (obj.cert?.length ?? 0) > 0);
 
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 </script>
 

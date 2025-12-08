@@ -23,7 +23,7 @@ const err = ref<string | null>(null);
 
 const samples = ref<PingSample[]>([]);
 const stat = ref<PingStat | null>(null);
-
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 
 function resetResult() {

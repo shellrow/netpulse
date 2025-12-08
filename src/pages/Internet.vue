@@ -31,7 +31,7 @@ function copy(text: string) {
 
 onMounted(refresh);
 
-// Auto height for ScrollPanel
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 </script>
 

@@ -213,7 +213,7 @@ function calcStats(hist: TrafficSample[]) {
 function ifaceStats(iface: NetworkInterface) {
   return calcStats(histories[iface.index] ?? []);
 }
-
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 </script>
 

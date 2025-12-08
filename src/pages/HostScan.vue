@@ -22,7 +22,7 @@ const loading = ref(false);
 const err = ref<string | null>(null);
 const progress = ref<HostScanProgress[]>([]);
 const report = ref<HostScanReport | null>(null);
-
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 
 const MAX_EXPAND = 65536;

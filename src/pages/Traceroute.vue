@@ -37,7 +37,7 @@ const hops = ref<TraceHop[]>([]);
 
 // Summary at done
 const doneInfo = ref<TraceDonePayload | null>(null);
-
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 
 // Chart data

@@ -12,7 +12,7 @@ const err = ref<string | null>(null);
 
 const progress = ref<HostScanProgress[]>([]);
 const report = ref<NeighborScanReport | null>(null);
-
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight({ extra: 28, gap: 12, min: 220 });
 
 const netMap = ref<Record<string, Ipv4Net>>({});

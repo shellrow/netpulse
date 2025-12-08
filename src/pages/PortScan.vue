@@ -25,7 +25,7 @@ const progressTotal = ref(0);
 const samples = ref<PortScanSample[]>([]);
 const openOnly = ref<PortScanSample[]>([]);
 const report = ref<PortScanReport | null>(null);
-
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 
 const targetPorts = ref<number[]>([]);
