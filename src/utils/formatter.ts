@@ -1,4 +1,4 @@
-import { toDate } from "../types/net.ts";
+import { Ipv4Net, Ipv6Net, toDate } from "../types/net.ts";
 
 // Format helpers
 export function nv(v?: string | number | null): string {
@@ -24,4 +24,16 @@ export function hexFlags(flags?: number) {
 export function severityByOper(s?: string) {
   const v = (s ?? "").toLowerCase();
   return v === "up" ? "success" : v === "down" ? "danger" : "secondary";
+}
+
+export function shortenIpList(list?: (Ipv4Net | Ipv6Net)[]): string {
+  if (!list || list.length === 0) return "-";
+
+  const first = typeof list[0] === "string"
+    ? list[0]
+    : `${list[0].addr}/${list[0].prefix_len}`;
+
+  if (list.length === 1) return first;
+
+  return `${first} + ${list.length - 1}`;
 }

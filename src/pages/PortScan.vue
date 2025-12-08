@@ -25,7 +25,7 @@ const progressTotal = ref(0);
 const samples = ref<PortScanSample[]>([]);
 const openOnly = ref<PortScanSample[]>([]);
 const report = ref<PortScanReport | null>(null);
-
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 
 const targetPorts = ref<number[]>([]);
@@ -184,7 +184,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="wrapRef" class="p-3 lg:p-4 flex flex-col gap-3 h-full min-h-0">
+  <div ref="wrapRef" class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 h-full min-h-0">
     <!-- Toolbar -->
     <div ref="toolbarRef" class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-center">
       <!-- Left: form controls -->
@@ -291,7 +291,7 @@ onBeforeUnmount(() => {
                 :sortOrder="1"
               >
                 <Column field="port" header="Port" style="width: 96px" sortable />
-                <Column header="State" style="width: 120px" sortable>
+                <Column header="State" style="width: 120px" sortField="state" sortable>
                   <template #body="{ data }">
                     <Tag
                       :value="data.state"
@@ -299,7 +299,7 @@ onBeforeUnmount(() => {
                     />
                   </template>
                 </Column>
-                <Column header="RTT" sortable>
+                <Column header="RTT" sortField="rtt_ms" sortable>
                   <template #body="{ data }">{{ fmtMs(data.rtt_ms) }}</template>
                 </Column>
                 <Column header="Message">

@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="wrapRef" class="p-3 lg:p-4 flex flex-col gap-3 h-full min-h-0">
+  <div ref="wrapRef" class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 h-full min-h-0">
     <!-- Toolbar -->
     <div
     ref="toolbarRef"
@@ -275,7 +275,9 @@ onBeforeUnmount(() => {
       :scrollHeight="tableHeight"
       class="text-sm"
       stripedRows
-      sortMode="multiple"
+      sortMode="single"
+      resizableColumns 
+      columnResizeMode="fit"
     >
       <Column field="protoLabel" header="Proto" style="width: 90px" sortable>
         <template #body="{ data }">

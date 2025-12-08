@@ -11,6 +11,7 @@ import { usePrivacyGate } from "../composables/usePrivacyGate";
 import type { ChartData, ChartOptions } from "chart.js";
 import { hexToRgba } from "../utils/color";
 
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 const { publicIpVisible, togglePublicIp, pubIpGate, hostnameVisible, toggleHostname } =
   usePrivacyGate();
@@ -371,7 +372,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     ref="wrapRef"
-    class="px-3 pt-3 pb-1 lg:px-4 lg:pt-4 lg:pb-2 flex flex-col gap-2 h-full min-h-0"
+    class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 h-full min-h-0"
   >
     <!-- Toolbar -->
     <div
@@ -683,7 +684,7 @@ onBeforeUnmount(() => {
           <Card>
             <template #title>
               <div v-if="defaultIface">
-                Live Traffic ({{ defaultIface.name }})
+                Live Traffic - {{ defaultIface.display_name }}
               </div>
               <div v-else>
                 Live Traffic (No default interface)

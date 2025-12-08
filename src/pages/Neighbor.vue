@@ -12,7 +12,7 @@ const err = ref<string | null>(null);
 
 const progress = ref<HostScanProgress[]>([]);
 const report = ref<NeighborScanReport | null>(null);
-
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight({ extra: 28, gap: 12, min: 220 });
 
 const netMap = ref<Record<string, Ipv4Net>>({});
@@ -115,7 +115,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="wrapRef" class="p-3 lg:p-4 flex flex-col gap-3 h-full min-h-0">
+  <div ref="wrapRef" class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 h-full min-h-0">
     <!-- Toolbar -->
     <div ref="toolbarRef" class="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-start gap-3">
       <div class="flex items-center gap-3 min-w-0 flex-wrap">
@@ -173,12 +173,12 @@ onBeforeUnmount(() => {
                   :sortOrder="1"
                 >
                   <Column field="ip_addr" header="IP" sortable />
-                  <Column header="State" style="width: 120px" sortable>
+                  <Column header="State" style="width: 120px" sortField="state" sortable>
                     <template #body="{ data }">
                       <Tag :value="data.state" :severity="data.state==='Alive' ? 'success' : 'warn'" />
                     </template>
                   </Column>
-                  <Column header="RTT" sortable>
+                  <Column header="RTT" sortField="rtt_ms" sortable>
                     <template #body="{ data }">{{ fmtMs(data.rtt_ms) }}</template>
                   </Column>
                   <Column header="Message">
@@ -218,7 +218,7 @@ onBeforeUnmount(() => {
                   :rows="10"
                   paginator
                   :rowsPerPageOptions="[10,20,50]"
-                  sortMode="multiple"
+                  sortMode="single"
                 >
                   <Column field="ip_addr" header="IP" sortable />
                   <Column field="mac_addr" header="MAC" sortable>

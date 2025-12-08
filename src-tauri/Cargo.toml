@@ -1,7 +1,7 @@
 [package]
 name = "netpulse"
-version = "0.1.0"
-description = "Cross-platform network information tool"
+version = "0.2.0"
+description = "Cross-platform network diagnostic suite"
 authors = ["shellrow <shellrow@foctal.com>"]
 edition = "2021"
 repository = "https://github.com/shellrow/netpulse"
@@ -58,6 +58,7 @@ quinn = "0.11"
 bytes = "1"
 uuid = "1.18"
 rand = "0.8"
+num_cpus = "1.17"
 #h3 = "0.0.8"
 #h3-quinn = "0.0.10"
 #http = "1.3"

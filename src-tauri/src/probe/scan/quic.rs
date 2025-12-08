@@ -11,8 +11,8 @@ use std::{
 };
 use tauri::{AppHandle, Emitter};
 
-use crate::model::scan::{PortScanReport, PortScanSample, PortScanSetting, PortState};
-use crate::probe::scan::{expand_ports, PORTS_CONCURRENCY};
+use crate::{model::scan::{PortScanReport, PortScanSample, PortScanSetting, PortState}, probe::scan::tuner::ports_concurrency};
+use crate::probe::scan::expand_ports;
 
 pub async fn port_scan(
     app: &AppHandle,
@@ -105,7 +105,7 @@ pub async fn port_scan(
                 sample
             }
         })
-        .buffer_unordered(PORTS_CONCURRENCY);
+        .buffer_unordered(ports_concurrency());
 
     // Collect only Open samples
     let mut open_samples = Vec::new();

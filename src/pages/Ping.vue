@@ -23,7 +23,7 @@ const err = ref<string | null>(null);
 
 const samples = ref<PingSample[]>([]);
 const stat = ref<PingStat | null>(null);
-
+// @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 
 function resetResult() {
@@ -127,7 +127,7 @@ function fmtMs(v?: number | null) {
 </script>
 
 <template>
-  <div ref="wrapRef" class="p-3 lg:p-4 flex flex-col gap-3 h-full min-h-0">
+  <div ref="wrapRef" class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 h-full min-h-0">
     <!-- Toolbar -->
     <div ref="toolbarRef" class="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-3">
       <!-- Left: filters -->

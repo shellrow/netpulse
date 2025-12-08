@@ -5,7 +5,7 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import type { NetworkInterface } from "../types/net"; 
 import { ipListToString, formatBps, formatBytesPerSec, formatBytes } from "../types/net"; 
 import { DataTableRowSelectEvent } from 'primevue/datatable';
-import { fmtIfType, fmtDate, hexFlags, severityByOper} from "../utils/formatter";
+import { fmtIfType, fmtDate, hexFlags, severityByOper, shortenIpList} from "../utils/formatter";
 
 const wrapRef = ref<HTMLElement|null>(null);
 const toolbarRef = ref<HTMLElement|null>(null);
@@ -62,7 +62,13 @@ function fmtThroughput(v?: number): string {
 
 const loading = ref(false);
 const rows = ref<NetworkInterface[]>([]);
-const selectedInterface = ref<NetworkInterface | null>(null);
+
+const selectedIndex = ref<number | null>(null);
+const selectedInterface = computed<NetworkInterface | null>(() => {
+  if (selectedIndex.value == null) return null;
+  return rows.value.find(r => r.index === selectedIndex.value) ?? null;
+});
+
 const dialogVisible = ref(false);
 const globalFilter = ref("");
 const visibleColumns = ref<string[]>([
@@ -121,14 +127,15 @@ async function onInterfacesUpdated() {
 }
 
 const onRowSelect = (event: DataTableRowSelectEvent) => {
-    const iface: NetworkInterface = event.data;
-    selectedInterface.value = iface;
-    dialogVisible.value = true;
+  const iface: NetworkInterface = event.data;
+  selectedIndex.value = iface.index;
+  dialogVisible.value = true;
 };
 
 const onRowUnselect = (_event: DataTableRowSelectEvent) => {
-    dialogVisible.value = false;
-}
+  dialogVisible.value = false;
+  selectedIndex.value = null;
+};
 
 onMounted(async () => {
   await fetchInterfaces();
@@ -179,56 +186,63 @@ const filtered = computed(() => {
 </script>
 
 <template>
-  <div ref="wrapRef" class="p-3 lg:p-4 flex flex-col gap-3 flex-1 min-h-0 h-full">
+  <div ref="wrapRef" class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 flex-1 min-h-0 h-full">
     <!-- Toolbar -->
-    <div ref="toolbarRef" class="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-2 w-full shrink-0">
-        <!-- Left -->
-        <div class="flex items-center gap-2 min-w-0">
-            <span class="text-surface-500 dark:text-surface-400 text-sm"> Network Interfaces
-            ({{ filtered.length }})
-            </span>
-        </div>
-        <!-- Right -->
-        <div class="flex flex-wrap items-center gap-2 justify-end">
-            <!-- MultiSelect -->
-            <MultiSelect
-            v-model="visibleColumns"
-            :options="[
-                { label: 'Name', value: 'name' },
-                { label: 'State', value: 'oper' },
-                { label: 'IPv4', value: 'ipv4' },
-                { label: 'IPv6', value: 'ipv6' },
-                { label: 'RX Bps', value: 'rx_bytes_per_sec' },
-                { label: 'TX Bps', value: 'tx_bytes_per_sec' },
-                { label: 'MTU', value: 'mtu' },
-                { label: 'MAC', value: 'mac' },
-            ]"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Columns"
-            class="min-w-40"
-            display="chip" 
-            :maxSelectedLabels="4" 
-            />
-            <!-- Search -->
-            <InputGroup class="max-w-[220px]">
+    <div
+      ref="toolbarRef"
+      class="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-2 w-full shrink-0"
+    >
+      <!-- Left -->
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="text-surface-500 dark:text-surface-400 text-sm">
+          Network Interfaces ({{ filtered.length }})
+        </span>
+      </div>
+
+      <!-- Right -->
+      <div class="flex flex-wrap items-center gap-2 justify-end">
+        <!-- MultiSelect -->
+        <MultiSelect
+          v-model="visibleColumns"
+          :options="[
+            { label: 'Name', value: 'name' },
+            { label: 'State', value: 'oper' },
+            { label: 'IPv4', value: 'ipv4' },
+            { label: 'IPv6', value: 'ipv6' },
+            { label: 'RX Bps', value: 'rx_bytes_per_sec' },
+            { label: 'TX Bps', value: 'tx_bytes_per_sec' },
+            { label: 'MTU', value: 'mtu' },
+            { label: 'MAC', value: 'mac' },
+          ]"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Columns"
+          class="min-w-40"
+          display="chip"
+          :maxSelectedLabels="4"
+        />
+
+        <!-- Search + Refresh -->
+        <div class="flex items-center gap-2">
+          <InputGroup class="max-w-[220px]">
             <InputGroupAddon><i class="pi pi-search"></i></InputGroupAddon>
             <InputText
-                v-model="globalFilter"
-                placeholder="Search (name/ip/mac...)"
-                class="flex-1 min-w-0"
+              v-model="globalFilter"
+              placeholder="Search (name/ip/mac...)"
+              class="flex-1 min-w-0"
             />
-            </InputGroup>
-            <!-- Refresh -->
-            <Button
+          </InputGroup>
+
+          <Button
             outlined
             icon="pi pi-refresh"
             severity="secondary"
             class="w-9 h-9"
             :loading="loading"
             @click="reloadInterfaces"
-            />
+          />
         </div>
+      </div>
     </div>
     <!-- Table -->
     <DataTable
@@ -238,19 +252,21 @@ const filtered = computed(() => {
       paginator
       :rows="15"
       :rowsPerPageOptions="[15, 30, 50, 100]"
-      sortMode="multiple"
+      sortMode="single"
       scrollable
       :scrollHeight="tableHeight"
       class="text-sm"
       stripedRows
       selectionMode="single"
       @rowSelect="onRowSelect"
-      @rowUnselect="onRowUnselect"
+      @rowUnselect="onRowUnselect" 
+      resizableColumns 
+      columnResizeMode="fit"
     >
       <!-- Name -->
       <Column v-if="visibleColumns.includes('name')" field="display_name" header="Name" sortable />
       <!-- State -->
-      <Column v-if="visibleColumns.includes('oper')" header="State" :sortable="true">
+      <Column v-if="visibleColumns.includes('oper')" header="State" sortField="oper_state" :sortable="true">
         <template #body="{ data }">
           <Tag
             :value="data.oper_state ?? '-'"
@@ -260,19 +276,19 @@ const filtered = computed(() => {
         </template>
       </Column>
       <!-- MAC -->
-      <Column v-if="visibleColumns.includes('mac')" field="mac" header="MAC" sortable style="min-width: 150px">
+      <Column v-if="visibleColumns.includes('mac')" sortField="mac_addr" header="MAC" sortable style="min-width: 150px">
         <template #body="{ data }">{{ data.mac_addr ?? '-' }}</template>
       </Column>
       <!-- IPv4 -->
-      <Column v-if="visibleColumns.includes('ipv4')" header="IPv4" :sortable="false" style="min-width: 220px">
+      <Column v-if="visibleColumns.includes('ipv4')" header="IPv4" :sortable="false" style="min-width: 180px">
         <template #body="{ data }">
-          {{ ipListToString(data.ipv4) || '-' }}
+          {{ shortenIpList(data.ipv4) }}
         </template>
       </Column>
       <!-- IPv6 -->
       <Column v-if="visibleColumns.includes('ipv6')" header="IPv6" :sortable="false" style="min-width: 220px">
         <template #body="{ data }">
-          {{ ipListToString(data.ipv6) || '-' }}
+          {{ shortenIpList(data.ipv6) }}
         </template>
       </Column>
       <!-- RX Bps -->
@@ -288,7 +304,7 @@ const filtered = computed(() => {
         </template>
       </Column>
       <!-- MTU -->
-      <Column v-if="visibleColumns.includes('mtu')" field="mtu" header="MTU" sortable style="width: 96px">
+      <Column v-if="visibleColumns.includes('mtu')" field="mtu" header="MTU" sortable style="width: 80px">
         <template #body="{ data }">{{ data.mtu ?? '-' }}</template>
       </Column>
     </DataTable>

@@ -2614,7 +2614,7 @@ dependencies = [
 
 [[package]]
 name = "netpulse"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2636,6 +2636,7 @@ dependencies = [
  "netroute",
  "netsock",
  "nex-packet",
+ "num_cpus",
  "os_info",
  "quinn",
  "rand 0.8.5",
