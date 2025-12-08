@@ -172,7 +172,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="wrapRef" class="p-3 lg:p-4 flex flex-col gap-3 h-full min-h-0">
+  <div ref="wrapRef" class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 h-full min-h-0">
     <!-- Toolbar -->
     <div ref="toolbarRef" class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-center">
       <div class="flex items-end gap-3 min-w-0 flex-wrap">

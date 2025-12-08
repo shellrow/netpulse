@@ -176,7 +176,7 @@ onMounted(async () => {
         </div>
       </header>
       <!-- Content -->
-      <main class="p-4 flex flex-col flex-auto min-h-0 overflow-hidden">
+      <main class="px-2 pt-2 pb-2 flex flex-col flex-auto min-h-0 overflow-hidden">
         <div class="border border-surface-200 dark:border-surface-700 rounded-2xl bg-surface-0 dark:bg-surface-950 flex-auto min-h-0 overflow-auto p-0">
           <router-view />
         </div>

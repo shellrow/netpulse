@@ -371,7 +371,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     ref="wrapRef"
-    class="px-3 pt-3 pb-1 lg:px-4 lg:pt-4 lg:pb-2 flex flex-col gap-2 h-full min-h-0"
+    class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 h-full min-h-0"
   >
     <!-- Toolbar -->
     <div

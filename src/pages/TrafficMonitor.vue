@@ -220,7 +220,7 @@ const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 <template>
   <div
     ref="wrapRef"
-    class="p-3 lg:p-4 flex flex-col gap-3 h-full min-h-0"
+    class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 h-full min-h-0"
   >
     <!-- Toolbar -->
     <div

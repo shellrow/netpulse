@@ -179,7 +179,7 @@ const filtered = computed(() => {
 </script>
 
 <template>
-  <div ref="wrapRef" class="p-3 lg:p-4 flex flex-col gap-3 flex-1 min-h-0 h-full">
+  <div ref="wrapRef" class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 flex-1 min-h-0 h-full">
     <!-- Toolbar -->
     <div ref="toolbarRef" class="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-2 w-full shrink-0">
         <!-- Left -->
