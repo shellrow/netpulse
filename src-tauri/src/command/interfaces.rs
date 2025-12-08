@@ -104,10 +104,15 @@ pub async fn get_network_address_map() -> Result<HashMap<String, Ipv4Net>, Strin
         if !iface.is_oper_up() || iface.gateway.is_none() {
             continue;
         }
+        let name: String = if let Some(friendly_name) = &iface.friendly_name {
+            friendly_name.clone()
+        } else {
+            iface.name.clone()
+        };
         if let Some(ipv4) = iface.ipv4.first() {
             let network = Ipv4Net::new(ipv4.network(), ipv4.prefix_len())
                 .map_err(|e| e.to_string())?;
-            map.insert(iface.name.clone(), network);
+            map.insert(name, network);
         }
     }
 

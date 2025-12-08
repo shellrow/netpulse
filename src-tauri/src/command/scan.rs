@@ -90,7 +90,7 @@ pub async fn neighbor_scan(app: AppHandle, iface_name: Option<String>) -> Result
     let iface = if let Some(name) = iface_name {
         netdev::get_interfaces()
             .into_iter()
-            .find(|i| i.name == name)
+            .find(|i| i.name == name || i.friendly_name.as_deref() == Some(&name))
             .ok_or_else(|| format!("interface not found: {name}"))?
     } else {
         netdev::get_default_interface().map_err(|e| e.to_string())?
