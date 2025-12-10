@@ -2,7 +2,6 @@ use anyhow::Result;
 use futures::{stream, StreamExt};
 use rand::{seq::SliceRandom, thread_rng};
 use std::net::{IpAddr, SocketAddr};
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
@@ -10,6 +9,7 @@ use tauri::{AppHandle, Emitter};
 use crate::model::scan::{PortScanReport, PortScanSample, PortScanSetting, PortState};
 use crate::probe::scan::expand_ports;
 use crate::probe::scan::tuner::ports_concurrency;
+use crate::probe::scan::progress::ThrottledProgress;
 
 pub async fn port_scan(
     app: &AppHandle,
@@ -27,26 +27,31 @@ pub async fn port_scan(
     let timeout = Duration::from_millis(setting.timeout_ms);
 
     let total = ports.len() as u32;
-    let done_ctr = Arc::new(AtomicU32::new(0));
+    let progress = Arc::new(ThrottledProgress::new(total));
 
-    // Create tasks for each port
-    // Collect results as they complete
+    // Create tasks for each port and collect results as they complete.
     let mut tasks = stream::iter(ports.into_iter())
         .map(|port| {
             let app = app.clone();
-            let done_ctr = done_ctr.clone();
+            let progress = progress.clone();
             async move {
                 let cfg = if ip.is_ipv4() {
                     crate::socket::tcp::TcpConfig::v4_stream()
                 } else {
                     crate::socket::tcp::TcpConfig::v6_stream()
                 };
+
                 let sock_addr = SocketAddr::new(ip, port);
                 let sock = match crate::socket::tcp::AsyncTcpSocket::from_config(&cfg) {
                     Ok(s) => s,
                     Err(e) => {
-                        let done = done_ctr.fetch_add(1, Ordering::Relaxed) + 1;
-                        let sample = PortScanSample {
+                        let (done, should_emit) = progress.on_advance();
+
+                        if should_emit {
+                            let _ = app.emit("portscan:progress", (done, total));
+                        }
+
+                        return PortScanSample {
                             ip_addr: ip,
                             port,
                             state: PortState::Filtered,
@@ -56,8 +61,6 @@ pub async fn port_scan(
                             done,
                             total,
                         };
-                        let _ = app.emit("portscan:progress", sample.clone());
-                        return sample;
                     }
                 };
 
@@ -88,7 +91,8 @@ pub async fn port_scan(
                     }
                 };
 
-                let done = done_ctr.fetch_add(1, Ordering::Relaxed) + 1;
+                let (done, should_emit) = progress.on_advance();
+
                 let sample = PortScanSample {
                     ip_addr: ip,
                     port,
@@ -100,29 +104,35 @@ pub async fn port_scan(
                     total,
                 };
 
-                let _ = app.emit("portscan:progress", sample.clone());
+                // Open port: emit detailed info
+                if sample.state == PortState::Open {
+                    let _ = app.emit("portscan:open", sample.clone());
+                }
+
+                // Progress event
+                if should_emit {
+                    let _ = app.emit("portscan:progress", (done, total));
+                }
+
                 sample
             }
         })
         .buffer_unordered(ports_concurrency());
 
-    // Collect only Open samples
-    let mut open_samples: Vec<PortScanSample> = Vec::new();
-    let tcp_service_db = ndb_tcp_service::TcpServiceDb::bundled();
-    while let Some(sample) = tasks.next().await {
-        if matches!(sample.state, PortState::Open) {
-            let mut sample = sample;
-            match tcp_service_db.get(sample.port) {
-                Some(entry) => {
-                    sample.service_name = Some(entry.name.clone());
-                },
-                None => sample.service_name = None,
+    // Collect Open results only
+    let mut open_samples = Vec::new();
+    let tcp_db = ndb_tcp_service::TcpServiceDb::bundled();
+
+    while let Some(mut sample) = tasks.next().await {
+        if sample.state == PortState::Open {
+            if let Some(entry) = tcp_db.get(sample.port) {
+                sample.service_name = Some(entry.name.clone());
             }
             open_samples.push(sample);
         }
     }
 
-    // Sort samples by port
+    // Sort by port
     open_samples.sort_by_key(|s| s.port);
 
     let report = PortScanReport {
