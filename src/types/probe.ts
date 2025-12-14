@@ -1,3 +1,5 @@
+import { Host } from "./net";
+
 export type ProbeStatusKind = "Done" | "Error" | "Timeout";
 export type PingProtocol = "Icmp" | "Tcp" | "Udp" | "Quic" | "Http";
 
@@ -87,12 +89,12 @@ export interface HostScanProgress {
 
 export interface HostScanReport {
   run_id: string;
-  alive: [string, number][];
-  unreachable: string[];
+  alive: [Host, number][];
+  unreachable: Host[];
   total: number;
 }
 
-export interface HostScanSetting {
+export interface HostScanRequest {
   targets: string[];
   hop_limit: number;
   timeout_ms: number;

@@ -10,10 +10,18 @@ const running = ref(false);
 const loading = ref(false);
 const err = ref<string | null>(null);
 
-const progress = ref<HostScanProgress[]>([]);
 const report = ref<NeighborScanReport | null>(null);
+
+const progressDone = ref(0);
+const progressTotal = ref(0);
+const foundAlive = ref(0);
+
 // @ts-ignore -- used in template refs
-const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight({ extra: 28, gap: 12, min: 220 });
+const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight({
+  extra: 28,
+  gap: 12,
+  min: 220,
+});
 
 const netMap = ref<Record<string, Ipv4Net>>({});
 const selectedIf = ref<string | null>(null);
@@ -27,7 +35,7 @@ const ifOptions = computed(() =>
       cidr = `${net.addr}/${net.prefix_len}`;
     }
     return { label: `${name}  ${cidr}`, value: name };
-  })
+  }),
 );
 
 const selectedCidr = computed(() => {
@@ -41,20 +49,26 @@ const selectedCidr = computed(() => {
 function resetAll() {
   err.value = null;
   report.value = null;
-  progress.value = [];
+  progressDone.value = 0;
+  progressTotal.value = 0;
+  foundAlive.value = 0;
 }
 
 function fmtMs(v?: number | null) {
   return v == null ? "-" : `${v} ms`;
 }
 
-const sent = computed(() => (progress.value.length > 0 ? progress.value[progress.value.length - 1].done : 0));
-const total = computed(() =>
-  progress.value.length > 0 ? progress.value[progress.value.length - 1].total : report.value?.total ?? 0
-);
-const pct = computed(() => (total.value > 0 ? Math.min(100, Math.round((sent.value / total.value) * 100)) : 0));
+const progressPct = computed(() => {
+  const t = progressTotal.value || 0;
+  const d = progressDone.value || 0;
+  if (!t) return 0;
+  return Math.min(100, Math.round((d / t) * 100));
+});
+
+const neighborCount = computed(() => report.value?.neighbors?.length ?? 0);
 
 let unlistenHostProgress: UnlistenFn | null = null;
+let unlistenHostAlive: UnlistenFn | null = null;
 let unlistenNeighborStart: UnlistenFn | null = null;
 let unlistenNeighborDone: UnlistenFn | null = null;
 
@@ -73,6 +87,7 @@ async function startScan() {
   resetAll();
   running.value = true;
   loading.value = true;
+
   try {
     const rep = await invoke<NeighborScanReport>("neighbor_scan", {
       ifaceName: selectedIf.value ?? null,
@@ -89,10 +104,20 @@ async function startScan() {
 onMounted(async () => {
   await nextTick();
 
-  unlistenHostProgress = await listen<HostScanProgress>("hostscan:progress", ev => {
+  // Lightweight progress: (done, total)
+  unlistenHostProgress = await listen("hostscan:progress", (ev: any) => {
+    const payload = ev?.payload;
+    if (!payload) return;
+    const [done, total] = payload as [number, number];
+    progressDone.value = done;
+    progressTotal.value = total;
+  });
+
+  // Alive only (count-up)
+  unlistenHostAlive = await listen<HostScanProgress>("hostscan:alive", (ev) => {
     const p = ev.payload;
     if (!p) return;
-    progress.value = [...progress.value, p];
+    foundAlive.value += 1;
   });
 
   unlistenNeighborStart = await listen<string>("neighborscan:start", () => {
@@ -109,6 +134,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   unlistenHostProgress?.();
+  unlistenHostAlive?.();
   unlistenNeighborStart?.();
   unlistenNeighborDone?.();
 });
@@ -145,49 +171,21 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Scrollable content -->
     <div class="flex-1 min-h-0">
       <ScrollPanel :style="{ width: '100%', height: panelHeight }" class="flex-1 min-h-0">
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 gap-3">
           <!-- Progress -->
           <Card>
             <template #title>Progress</template>
             <template #content>
-              <div class="flex items-center justify-between mb-2">
-                <div class="text-sm text-surface-500">Scanned: {{ sent }} / {{ total }}</div>
-                <div class="text-sm text-surface-500">{{ pct }}%</div>
+              <div class="flex items-center justify-between mb-2 text-sm text-surface-500">
+                <div>Scanned: {{ progressDone }} / {{ progressTotal || "-" }}</div>
+                <div>{{ progressPct }}%</div>
               </div>
-              <ProgressBar :value="pct" />
-
-              <div class="mt-3">
-                <DataTable
-                  :value="progress"
-                  size="small"
-                  stripedRows
-                  class="text-sm"
-                  :rows="10"
-                  paginator
-                  :rowsPerPageOptions="[10,20,50]"
-                  sortMode="single"
-                  sortField="ip_addr"
-                  :sortOrder="1"
-                >
-                  <Column field="ip_addr" header="IP" sortable />
-                  <Column header="State" style="width: 120px" sortField="state" sortable>
-                    <template #body="{ data }">
-                      <Tag :value="data.state" :severity="data.state==='Alive' ? 'success' : 'warn'" />
-                    </template>
-                  </Column>
-                  <Column header="RTT" sortField="rtt_ms" sortable>
-                    <template #body="{ data }">{{ fmtMs(data.rtt_ms) }}</template>
-                  </Column>
-                  <Column header="Message">
-                    <template #body="{ data }">
-                      <span class="text-surface-500" v-if="data.message">{{ data.message }}</span>
-                      <span v-else>-</span>
-                    </template>
-                  </Column>
-                </DataTable>
+              <ProgressBar :value="progressPct" />
+              <div class="mt-2 text-xs text-surface-500">
+                Alive hosts found:
+                <span class="font-mono">{{ foundAlive }}</span>
               </div>
             </template>
           </Card>
@@ -202,7 +200,7 @@ onBeforeUnmount(() => {
                 <div class="grid grid-cols-2 gap-3 text-sm mb-3">
                   <div class="rounded-lg bg-surface-50 dark:bg-surface-900 p-3">
                     <div class="text-surface-500 text-xs">Total Alive</div>
-                    <div class="font-medium">{{ report.neighbors.length }}</div>
+                    <div class="font-medium">{{ neighborCount }}</div>
                   </div>
                   <div class="rounded-lg bg-surface-50 dark:bg-surface-900 p-3">
                     <div class="text-surface-500 text-xs">Scanned</div>
@@ -217,18 +215,18 @@ onBeforeUnmount(() => {
                   class="text-sm"
                   :rows="10"
                   paginator
-                  :rowsPerPageOptions="[10,20,50]"
+                  :rowsPerPageOptions="[10, 20, 50]"
                   sortMode="single"
                 >
                   <Column field="ip_addr" header="IP" sortable />
                   <Column field="mac_addr" header="MAC" sortable>
                     <template #body="{ data }">
-                      <span class="font-mono">{{ data.mac_addr ?? '-' }}</span>
+                      <span class="font-mono">{{ data.mac_addr ?? "-" }}</span>
                     </template>
                   </Column>
                   <Column field="vendor" header="Vendor" sortable>
                     <template #body="{ data }">
-                      <span>{{ data.vendor ?? '-' }}</span>
+                      <span>{{ data.vendor ?? "-" }}</span>
                     </template>
                   </Column>
                   <Column field="rtt_ms" header="RTT" sortable>
@@ -241,10 +239,10 @@ onBeforeUnmount(() => {
                           v-for="t in (data.tags || [])"
                           :key="t"
                           :value="t"
-                          :severity="t==='Gateway' ? 'warn' : (t==='Self' ? 'info' : (t==='DNS' ? 'secondary' : 'contrast'))"
+                          :severity="t === 'Gateway' ? 'warn' : (t === 'Self' ? 'info' : (t === 'DNS' ? 'secondary' : 'contrast'))"
                           class="text-xs"
                         />
-                        <span v-if="!data.tags || data.tags.length===0" class="text-surface-500">-</span>
+                        <span v-if="!data.tags || data.tags.length === 0" class="text-surface-500">-</span>
                       </div>
                     </template>
                   </Column>

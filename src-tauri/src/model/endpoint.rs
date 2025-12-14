@@ -87,6 +87,13 @@ impl Host {
     }
 }
 
+/// Representation of a possible host with optional IP address and hostname
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaybeHost {
+    pub ip: Option<IpAddr>,
+    pub hostname: Option<String>,
+}
+
 /// Representation of an endpoint with IP, hostname, MAC address, tags, and ports
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Endpoint {

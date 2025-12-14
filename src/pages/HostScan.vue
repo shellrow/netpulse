@@ -2,7 +2,7 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
-import { HostScanProgress, HostScanReport, HostScanSetting } from "../types/probe";
+import { HostScanProgress, HostScanReport, HostScanRequest } from "../types/probe";
 import { useScrollPanelHeight } from "../composables/useScrollPanelHeight";
 
 const form = reactive({
@@ -24,7 +24,7 @@ const err = ref<string | null>(null);
 const progressDone = ref(0);
 const progressTotal = ref(0);
 
-type AliveRow = { ip: string; rtt: number | null };
+type AliveRow = { ip: string; hostname?: string | null; rtt: number | null };
 const aliveRows = ref<AliveRow[]>([]);
 const report = ref<HostScanReport | null>(null);
 
@@ -153,7 +153,7 @@ async function startScan() {
   running.value = true;
   loading.value = true;
 
-  const setting: HostScanSetting = {
+  const setting: HostScanRequest = {
     targets,
     hop_limit: form.hop_limit,
     timeout_ms: form.timeout_ms,
@@ -166,8 +166,9 @@ async function startScan() {
   try {
     const rep = await invoke<HostScanReport>("host_scan", { setting });
     report.value = rep;
-    aliveRows.value = rep.alive.map(([ip, rtt]) => ({
-      ip: String(ip),
+    aliveRows.value = rep.alive.map(([host, rtt]) => ({
+      ip: String(host.ip),
+      hostname: host.hostname,
       rtt,
     }));
   } catch (e: any) {
@@ -206,8 +207,9 @@ onMounted(async () => {
     const rep = ev.payload;
     if (!rep) return;
     report.value = rep;
-    aliveRows.value = rep.alive.map(([ip, rtt]) => ({
-      ip: String(ip),
+    aliveRows.value = rep.alive.map(([host, rtt]) => ({
+      ip: String(host.ip),
+      hostname: host.hostname,
       rtt,
     }));
     running.value = false;
@@ -239,7 +241,7 @@ onBeforeUnmount(() => {
             v-model="form.mode"
             :options="[
               { label: 'CIDR (IPv4)', value: 'cidr' },
-              { label: 'List (IPs)', value: 'list' },
+              { label: 'List (Hosts)', value: 'list' },
             ]"
             optionLabel="label"
             optionValue="value"
@@ -258,7 +260,7 @@ onBeforeUnmount(() => {
         </div>
         <div v-else class="flex flex-col gap-1">
           <label class="text-xs text-surface-500"
-            >IP List (newline / space / comma)</label
+            >Host List (newline / space / comma)</label
           >
           <Textarea v-model="form.list" rows="2" class="w-[280px]" />
         </div>
@@ -373,6 +375,7 @@ onBeforeUnmount(() => {
                   :sortOrder="1"
                 >
                   <Column field="ip" header="IP" sortable />
+                  <Column field="hostname" header="Hostname" sortable />
                   <Column field="rtt" header="RTT" sortable>
                     <template #body="{ data }">
                       {{ fmtMs(data.rtt) }}

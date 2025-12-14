@@ -4,7 +4,7 @@ use netdev::Interface;
 use tauri::{AppHandle, Emitter};
 
 use crate::model::scan::{
-    HostScanReport, HostScanSetting, NeighborScanReport, PortScanProtocol, PortScanReport, PortScanSetting, TargetPortsPreset
+    HostScanReport, HostScanSetting, HostScanRequest, NeighborScanReport, PortScanProtocol, PortScanReport, PortScanSetting, TargetPortsPreset
 };
 
 #[tauri::command]
@@ -53,7 +53,8 @@ pub async fn port_scan(app: AppHandle, setting: PortScanSetting) -> Result<PortS
 }
 
 #[tauri::command]
-pub async fn host_scan(app: AppHandle, setting: HostScanSetting) -> Result<HostScanReport, String> {
+pub async fn host_scan(app: AppHandle, setting: HostScanRequest) -> Result<HostScanReport, String> {
+    let scan_setting: HostScanSetting = HostScanSetting::from_request(setting);
     let run_id = uuid::Uuid::new_v4().to_string();
 
     let default_if = netdev::get_default_interface().map_err(|e| e.to_string())?;
@@ -75,7 +76,7 @@ pub async fn host_scan(app: AppHandle, setting: HostScanSetting) -> Result<HostS
             run_id: run_id.clone(),
         },
     );
-    crate::probe::scan::icmp::host_scan(&app, &run_id, src_ipv4_opt, src_ipv6_opt, setting)
+    crate::probe::scan::icmp::host_scan(&app, &run_id, src_ipv4_opt, src_ipv6_opt, scan_setting)
         .await
         .map_err(|e| e.to_string())
 }

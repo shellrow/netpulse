@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{oneshot, Mutex};
 
+use crate::model::endpoint::Host;
 use crate::model::scan::{HostScanProgress, HostScanReport, HostScanSetting, HostState};
 use crate::probe::packet::{build_icmp_echo_bytes, parse_icmp_echo_v4, parse_icmp_echo_v6};
 use crate::probe::scan::tuner::hosts_concurrency;
@@ -59,7 +60,6 @@ pub async fn host_scan(
     src_ipv6: Option<IpAddr>,
     mut setting: HostScanSetting,
 ) -> Result<HostScanReport> {
-    let total = setting.targets.len() as u32;
     let timeout = Duration::from_millis(setting.timeout_ms);
     let payload = setting
         .payload
@@ -70,9 +70,17 @@ pub async fn host_scan(
         setting.targets.shuffle(&mut thread_rng());
     }
 
+    let target_hosts: Vec<Host> = setting.resolve_targets().await;
+    let target_map : HashMap<IpAddr, Host> = target_hosts
+        .iter()
+        .map(|h| (h.ip, h.clone()))
+        .collect();
+
+    let total = target_map.len() as u32;
+
     let progress = Arc::new(ThrottledProgress::new(total));
 
-    let socket_v4 = if setting.targets.iter().any(|ip| ip.is_ipv4()) {
+    let socket_v4 = if target_map.keys().into_iter().any(|ip| ip.is_ipv4()) {
         let mut cfg = IcmpConfig::new(IcmpKind::V4);
         cfg = cfg.with_ttl(setting.hop_limit.max(1) as u32);
         Some(Arc::new(AsyncIcmpSocket::new(&cfg).await?))
@@ -80,7 +88,7 @@ pub async fn host_scan(
         None
     };
 
-    let socket_v6 = if setting.targets.iter().any(|ip| ip.is_ipv6()) {
+    let socket_v6 = if target_map.keys().into_iter().any(|ip| ip.is_ipv6()) {
         let mut cfg = IcmpConfig::new(IcmpKind::V6);
         cfg = cfg.with_hoplimit(setting.hop_limit.max(1) as u32);
         Some(Arc::new(AsyncIcmpSocket::new(&cfg).await?))
@@ -113,7 +121,7 @@ pub async fn host_scan(
     let total_cl = total;
     let progress_cl = progress.clone();
 
-    let mut stream_send = stream::iter(setting.targets.clone().into_iter())
+    let mut stream_send = stream::iter(target_map.keys().cloned().into_iter())
         .map(move |dst_ip| {
             let app = app_cl.clone();
             let socket_v4 = socket_v4_for_tasks.clone();
@@ -239,13 +247,21 @@ pub async fn host_scan(
         .buffer_unordered(concurrency);
 
     // Collect results
-    let mut alive: Vec<(IpAddr, u64)> = Vec::new();
-    let mut unreachable: Vec<IpAddr> = Vec::new();
+    let mut alive: Vec<(Host, u64)> = Vec::new();
+    let mut unreachable: Vec<Host> = Vec::new();
 
     while let Some(p) = stream_send.next().await {
         match p.state {
-            HostState::Alive => alive.push((p.ip_addr, p.rtt_ms.unwrap_or(0))),
-            HostState::Unreachable => unreachable.push(p.ip_addr),
+            HostState::Alive => {
+                if let Some(host) = target_map.get(&p.ip_addr) {
+                    alive.push((host.clone(), p.rtt_ms.unwrap_or(0)));
+                }
+            },
+            HostState::Unreachable => {
+                if let Some(host) = target_map.get(&p.ip_addr) {
+                    unreachable.push(host.clone());
+                }
+            },
         }
     }
 

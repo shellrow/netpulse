@@ -39,8 +39,8 @@ pub async fn neighbor_scan(app: &AppHandle, run_id: &str, iface: netdev::Interfa
 
     let mut neighbors: Vec<NeighborHost> = Vec::new();
 
-    for (ip, rtt) in hostscan_result.alive {
-        let mac_addr = neigh_table.get(&ip).cloned();
+    for (host, rtt) in hostscan_result.alive {
+        let mac_addr = neigh_table.get(&host.ip).cloned();
         let vendor = match mac_addr {
             Some(mac) => match oui_db.lookup_mac(&mac) {
                 Some(oui_info) => oui_info.vendor_detail.clone(),
@@ -51,11 +51,11 @@ pub async fn neighbor_scan(app: &AppHandle, run_id: &str, iface: netdev::Interfa
 
         // Classify tags
         let mut tags = Vec::new();
-        if self_ips.contains(&ip) {
+        if self_ips.contains(&host.ip) {
             tags.push("Self".to_string());
         }
         if let Some(gw) = &iface.gateway {
-            match ip {
+            match host.ip {
                 IpAddr::V4(ipv4) => {
                     if gw.ipv4.contains(&ipv4) {
                         tags.push("Gateway".to_string());
@@ -69,12 +69,12 @@ pub async fn neighbor_scan(app: &AppHandle, run_id: &str, iface: netdev::Interfa
             }
         }
 
-        if iface.dns_servers.contains(&ip) {
+        if iface.dns_servers.contains(&host.ip) {
             tags.push("DNS".to_string());
         }
 
         neighbors.push(NeighborHost {
-            ip_addr: ip,
+            ip_addr: host.ip,
             mac_addr,
             vendor,
             rtt_ms: Some(rtt),
