@@ -2,7 +2,7 @@ use netdev::MacAddr;
 use serde::{Deserialize, Serialize};
 use std::{net::IpAddr, time::Duration};
 
-use crate::model::endpoint::{Host, MaybeHost};
+use crate::{model::endpoint::{Host, MaybeHost}, probe::service::models::ServiceInfo};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum PortScanProtocol {
@@ -39,6 +39,7 @@ pub struct PortScanSample {
     pub rtt_ms: Option<u64>,
     pub message: Option<String>,
     pub service_name: Option<String>,
+    pub service_info: Option<ServiceInfo>,
     pub done: u32,
     pub total: u32,
 }
@@ -62,6 +63,7 @@ pub struct PortScanSetting {
     pub protocol: PortScanProtocol,
     pub timeout_ms: u64,
     pub ordered: bool,
+    pub service_detection: bool,
 }
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]

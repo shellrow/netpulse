@@ -6,10 +6,12 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 
+use crate::model::endpoint::Endpoint;
 use crate::model::scan::{PortScanReport, PortScanSample, PortScanSetting, PortState};
 use crate::probe::scan::expand_ports;
 use crate::probe::scan::tuner::ports_concurrency;
 use crate::probe::scan::progress::ThrottledProgress;
+use crate::probe::service::{ServiceDetector, ServiceProbeConfig};
 
 pub async fn port_scan(
     app: &AppHandle,
@@ -58,6 +60,7 @@ pub async fn port_scan(
                             rtt_ms: None,
                             message: Some(format!("tcp socket error: {}", e)),
                             service_name: None,
+                            service_info: None,
                             done,
                             total,
                         };
@@ -100,6 +103,7 @@ pub async fn port_scan(
                     rtt_ms,
                     message: msg,
                     service_name: None,
+                    service_info: None,
                     done,
                     total,
                 };
@@ -134,6 +138,41 @@ pub async fn port_scan(
 
     // Sort by port
     open_samples.sort_by_key(|s| s.port);
+
+    // Service detection
+    if setting.service_detection && !open_samples.is_empty() {
+        let _ = app.emit(
+            "portscan:service_detection_start",
+            run_id.to_string(),
+        );
+        let service_probe_setting = ServiceProbeConfig {
+            timeout: Duration::from_secs(2),
+            max_concurrency: 100,
+            max_read_size: 1024 * 1024,
+            sni: true,
+            skip_cert_verify: true,
+        };
+        let detector = ServiceDetector::new(service_probe_setting);
+        let mut endpoint = Endpoint::new(ip);
+        endpoint.hostname = setting.hostname.clone();
+        for sample in &open_samples {
+            endpoint.upsert_port(crate::model::endpoint::Port {
+                number: sample.port,
+                transport: crate::model::endpoint::TransportProtocol::Tcp,
+            });
+        }
+        let active_endpoints: Vec<Endpoint> = vec![endpoint];
+        let service_result = detector.run_service_detection(active_endpoints).await?;
+        for sample in &mut open_samples {
+            if let Some(res) = service_result.results.iter().find(|r| r.port == sample.port) {
+                sample.service_info = Some(res.service_info.clone());
+            }
+        }
+        let _ = app.emit(
+            "portscan:service_detection_done",
+            run_id.to_string(),
+        );
+    }
 
     let report = PortScanReport {
         run_id: run_id.to_string(),

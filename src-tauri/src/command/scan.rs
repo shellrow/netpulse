@@ -7,6 +7,41 @@ use crate::model::scan::{
     HostScanReport, HostScanSetting, HostScanRequest, NeighborScanReport, PortScanProtocol, PortScanReport, PortScanSetting, TargetPortsPreset
 };
 
+use crate::probe::service::db::service::{PORT_PROBE_DB, RESPONSE_SIGNATURES_DB, SERVICE_PROBE_DB, TCP_SERVICE_DB, UDP_SERVICE_DB, init_port_probe_db, init_response_signatures_db, init_service_probe_db, init_tcp_service_db, init_udp_service_db};
+use crate::probe::service::db::tls::{TLS_OID_MAP, init_tls_oid_map};
+
+#[tauri::command]
+pub async fn init_probe_db() -> Result<(), String> {
+
+    // Initialize service databases if not already initialized
+    
+    if TCP_SERVICE_DB.get().is_none() {
+        init_tcp_service_db().map_err(|e| e.to_string())?;
+    }
+
+    if UDP_SERVICE_DB.get().is_none() {
+        init_udp_service_db().map_err(|e| e.to_string())?;
+    }
+
+    if TLS_OID_MAP.get().is_none() {
+        init_tls_oid_map().map_err(|e| e.to_string())?;
+    }
+
+    if PORT_PROBE_DB.get().is_none() {
+        init_port_probe_db().map_err(|e| e.to_string())?;
+    }
+
+    if SERVICE_PROBE_DB.get().is_none() {
+        init_service_probe_db().map_err(|e| e.to_string())?;
+    }
+
+    if RESPONSE_SIGNATURES_DB.get().is_none() {
+        init_response_signatures_db().map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn port_scan(app: AppHandle, setting: PortScanSetting) -> Result<PortScanReport, String> {
     let default_interface: Interface = netdev::get_default_interface()

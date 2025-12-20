@@ -9,6 +9,7 @@ mod probe;
 mod service;
 mod socket;
 mod state;
+mod resources;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

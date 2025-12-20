@@ -7,6 +7,7 @@ import {
   PortScanReport,
   PortScanSample,
   PortScanSetting,
+  ServiceInfo,
   TargetPortsPreset,
 } from "../types/probe";
 import { Host } from "../types/net";
@@ -19,10 +20,13 @@ const form = reactive({
   userPortsText: "80,443,8080,8443",
   timeout_ms: 1500,
   ordered: false,
+  service_detection: false,
 });
 
+const activeRunId = ref<string | null>(null);
 const running = ref(false);
 const loading = ref(false);
+const serviceDetecting = ref(false);
 const err = ref<string | null>(null);
 
 const progressDone = ref(0);
@@ -81,6 +85,27 @@ async function refreshTargetPorts() {
   }
 }
 
+function serviceDetailText(s?: ServiceInfo | null): string {
+  if (!s) return "-";
+
+  const cpes = (s.cpes ?? []).filter(Boolean);
+  if (cpes.length > 0) {
+    const shown = cpes.slice(0, 3).join(", ");
+    return cpes.length > 3 ? `${shown} (+${cpes.length - 3})` : shown;
+  }
+
+  const banner = (s.banner ?? "").trim();
+  if (banner) return banner;
+
+  const raw = (s.raw ?? "").trim();
+  if (raw) return raw;
+
+  const parts = [s.product, s.version, s.name].filter((v) => !!v && String(v).trim().length > 0);
+  if (parts.length) return parts.join(" ");
+
+  return "-";
+}
+
 let targetPortsTimer: number | null = null;
 
 watch(
@@ -106,6 +131,7 @@ async function toSetting(): Promise<PortScanSetting> {
     protocol: form.protocol,
     timeout_ms: form.timeout_ms,
     ordered: form.ordered,
+    service_detection: form.service_detection,
   };
 }
 
@@ -139,6 +165,14 @@ async function startScan() {
   }
 }
 
+async function initProbeDb() {
+  try {
+    await invoke("init_probe_db");
+  } catch (e) {
+    console.error("Failed to init probe database:", e);
+  }
+}
+
 const progressPct = computed(() => {
   const t = progressTotal.value || 0;
   const d = progressDone.value || 0;
@@ -157,11 +191,21 @@ let unlistenStart: UnlistenFn | null = null;
 let unlistenProgress: UnlistenFn | null = null;
 let unlistenOpen: UnlistenFn | null = null;
 let unlistenDone: UnlistenFn | null = null;
+let unlistenSvcStart: UnlistenFn | null = null;
+let unlistenSvcDone: UnlistenFn | null = null;
 
 // Set up event listeners on mount
 onMounted(async () => {
+  
+  // Initialize probe database
+  initProbeDb();
+
   // Start event
-  unlistenStart = await listen("portscan:start", () => {
+  unlistenStart = await listen("portscan:start", (ev:any) => {
+    const runId: string | undefined = ev?.payload.run_id;
+    if (runId) {
+      activeRunId.value = runId;
+    }
     progressDone.value = 0;
     progressTotal.value = 0;
   });
@@ -178,6 +222,18 @@ onMounted(async () => {
     const s = ev?.payload as PortScanSample | undefined;
     if (!s) return;
     openOnly.value = [...openOnly.value, s];
+  });
+
+  unlistenSvcStart = await listen("portscan:service_detection_start", (ev: any) => {
+    const runId = ev?.payload as string | undefined;
+    if (activeRunId.value && runId && runId !== activeRunId.value) return;
+    serviceDetecting.value = true;
+  });
+
+  unlistenSvcDone = await listen("portscan:service_detection_done", (ev: any) => {
+    const runId = ev?.payload as string | undefined;
+    if (activeRunId.value && runId && runId !== activeRunId.value) return;
+    serviceDetecting.value = false;
   });
 
   // Done event
@@ -197,6 +253,8 @@ onBeforeUnmount(() => {
   unlistenProgress?.();
   unlistenOpen?.();
   unlistenDone?.();
+  unlistenSvcStart?.();
+  unlistenSvcDone?.();
 });
 </script>
 
@@ -276,6 +334,11 @@ onBeforeUnmount(() => {
           <label for="ordered" class="text-sm">Ordered</label>
         </div>
 
+        <div class="flex items-center gap-2 mb-2">
+          <Checkbox v-model="form.service_detection" :binary="true" inputId="service_detection" v-tooltip.bottom="`Enable service detection.`" />
+          <label for="service_detection" class="text-sm">Service</label>
+        </div>
+
         <!-- Target count preview -->
         <div class="flex flex-col gap-1">
           <label class="text-xs text-surface-500">Targets</label>
@@ -335,6 +398,10 @@ onBeforeUnmount(() => {
               >
                 <div>Open: {{ openCount }}</div>
               </div>
+              <div v-if="serviceDetecting" class="mb-2 text-xs text-surface-500 flex items-center gap-2">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Service detection in progress…</span>
+              </div>
               <div
                 v-if="report"
                 class="mt-1 text-xs text-surface-500"
@@ -388,6 +455,13 @@ onBeforeUnmount(() => {
                     >
                       <template #body="{ data }">
                         {{ fmtMs(data.rtt_ms) }}
+                      </template>
+                    </Column>
+                    <Column header="Service Detail">
+                      <template #body="{ data }">
+                        <span class="font-mono text-xs text-surface-600 dark:text-surface-300">
+                          {{ serviceDetailText(data.service_info) }}
+                        </span>
                       </template>
                     </Column>
                   </DataTable>
