@@ -92,7 +92,7 @@ pub fn init_service_probe_db() -> Result<()> {
 /// Initialize Response Signatures database
 pub fn init_response_signatures_db() -> Result<()> {
     let response_signatures_db: ResponseSignaturesDb = serde_json::from_str(crate::resources::SERVICE_DB_JSON)
-        .expect("Invalid nrev-service-db.json format");
+        .expect("Invalid np-service-db.json format");
     RESPONSE_SIGNATURES_DB
         .set(response_signatures_db.signatures)
         .map_err(|_| anyhow::anyhow!("Failed to set RESPONSE_SIGNATURES_DB in OnceLock"))?;
