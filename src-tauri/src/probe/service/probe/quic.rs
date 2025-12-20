@@ -8,6 +8,7 @@ use http::{Request, Method};
 use crate::probe::service::models::{ServiceInfo, TlsInfo};
 use crate::probe::service::probe::{ProbeContext, PortProbeResult, tls::SkipServerVerification};
 use crate::probe::service::db;
+use crate::probe::DEFAULT_USER_AGENT_CHROME;
 
 /// Create a QUIC client configuration with optional certificate verification skipping and ALPN protocols.
 pub fn quic_client_config(skip_verify: bool, alpn: &[&[u8]]) -> Result<ClientConfig> {
@@ -128,7 +129,7 @@ impl QuicProbe {
                         .method(Method::GET)
                         .uri("https://".to_string() + server_name + "/")
                         .header("Host", server_name)
-                        .header("User-Agent", "nrev/0.1 (probe)")
+                        .header("User-Agent", DEFAULT_USER_AGENT_CHROME)
                         .body(())
                         .unwrap();
 
