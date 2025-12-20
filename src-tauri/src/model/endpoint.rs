@@ -11,6 +11,26 @@ pub enum TransportProtocol {
     Quic,
 }
 
+impl TransportProtocol {
+    /// Create a TransportProtocol from a string representation.
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "tcp" => Some(TransportProtocol::Tcp),
+            "udp" => Some(TransportProtocol::Udp),
+            "quic" => Some(TransportProtocol::Quic),
+            _ => None,
+        }
+    }
+    /// Get the string representation of the TransportProtocol.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            TransportProtocol::Tcp => "tcp",
+            TransportProtocol::Udp => "udp",
+            TransportProtocol::Quic => "quic",
+        }
+    }
+}
+
 /// Network port with transport protocol
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Ord, PartialOrd)]
 pub struct Port {
@@ -85,6 +105,13 @@ impl Host {
             ..Default::default()
         }
     }
+}
+
+/// Representation of a possible host with optional IP address and hostname
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaybeHost {
+    pub ip: Option<IpAddr>,
+    pub hostname: Option<String>,
 }
 
 /// Representation of an endpoint with IP, hostname, MAC address, tags, and ports

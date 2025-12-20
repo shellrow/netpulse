@@ -195,6 +195,7 @@ pub fn run() {
             command::scan::host_scan,
             command::scan::neighbor_scan,
             command::trace::traceroute,
+            command::scan::init_probe_db,
         ])
         .run(tauri::generate_context!())
         .expect("error while running netpulse application");

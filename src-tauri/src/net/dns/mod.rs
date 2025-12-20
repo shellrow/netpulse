@@ -1,6 +1,7 @@
 pub mod resolver;
 use anyhow::Result;
-use std::{net::IpAddr, time::Duration};
+use futures::{stream, StreamExt};
+use std::{collections::HashSet, net::IpAddr, time::Duration};
 
 use crate::model::{dns::Domain, endpoint::Host};
 
@@ -53,4 +54,56 @@ pub async fn reverse_lookup(ip: IpAddr, timeout: Duration) -> Option<String> {
         Ok(Ok(names)) => names.iter().next().map(|n| n.to_string()),
         _ => None,
     }
+}
+
+/// Resolve a mixed list of IP strings and hostnames into concrete hosts.
+///
+/// - Accepts strings like "192.168.0.1" and "example.com" in the same list.
+/// - Hostnames may resolve to multiple IPs; all are returned.
+/// - Duplicate IPs are removed while preserving input order as much as possible.
+/// - Resolution runs concurrently with a bounded concurrency limit.
+pub async fn resolve_hosts(
+    inputs: &[String],
+    timeout: Duration,
+    concurrency: usize,
+) -> Vec<Host> {
+    let concurrency = concurrency.max(1);
+    
+    let mut out: Vec<Host> = Vec::new();
+    let mut seen: HashSet<IpAddr> = HashSet::new();
+
+    // Collect hostnames to resolve concurrently
+    let mut hostnames: Vec<String> = Vec::new();
+    for s in inputs {
+        let t = s.trim();
+        if t.is_empty() {
+            continue;
+        }
+        if let Ok(ip) = t.parse::<IpAddr>() {
+            if seen.insert(ip) {
+                // Keep hostname None here (reverse lookup can be expensive and noisy...)
+                out.push(Host { ip, hostname: None });
+            }
+        } else {
+            hostnames.push(t.to_string());
+        }
+    }
+
+    // Resolve hostnames concurrently
+    let mut st = stream::iter(hostnames.into_iter())
+        .map(|hn| async move {
+            let ips = lookup_ip(&hn, timeout).await.unwrap_or_default();
+            (hn, ips)
+        })
+        .buffer_unordered(concurrency);
+
+    while let Some((hn, ips)) = st.next().await {
+        for ip in ips {
+            if seen.insert(ip) {
+                out.push(Host { ip, hostname: Some(hn.clone()) });
+            }
+        }
+    }
+
+    out
 }

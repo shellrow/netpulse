@@ -2,7 +2,7 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
-import { HostScanProgress, HostScanReport, HostScanSetting } from "../types/probe";
+import { HostScanProgress, HostScanReport, HostScanRequest } from "../types/probe";
 import { useScrollPanelHeight } from "../composables/useScrollPanelHeight";
 
 const form = reactive({
@@ -20,18 +20,24 @@ const form = reactive({
 const running = ref(false);
 const loading = ref(false);
 const err = ref<string | null>(null);
-const progress = ref<HostScanProgress[]>([]);
+
+const progressDone = ref(0);
+const progressTotal = ref(0);
+
+type AliveRow = { ip: string; hostname?: string | null; rtt: number | null };
+const aliveRows = ref<AliveRow[]>([]);
 const report = ref<HostScanReport | null>(null);
+
 // @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
 
 const MAX_EXPAND = 65536;
 
-// Expand IPv4 CIDR like "192.168.1.0/24" to host list (excludes network/broadcast when prefix <= 30)
+// Expand IPv4 CIDR "192.168.1.0/24" to host list (excludes network/broadcast when prefix <= 30)
 function expandIpv4Cidr(cidr: string, max = MAX_EXPAND): string[] {
   const m = cidr.trim().match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)\/(\d{1,2})$/);
   if (!m) return [];
-  const [ , a, b, c, d, prefixStr ] = m;
+  const [, a, b, c, d, prefixStr] = m;
   const prefix = parseInt(prefixStr, 10);
   if (prefix < 0 || prefix > 32) return [];
 
@@ -39,10 +45,10 @@ function expandIpv4Cidr(cidr: string, max = MAX_EXPAND): string[] {
   if (total === 0 || total > max) return [];
 
   const ipNum =
-    (parseInt(a,10) << 24) |
-    (parseInt(b,10) << 16) |
-    (parseInt(c,10) <<  8) |
-     parseInt(d,10);
+    (parseInt(a, 10) << 24) |
+    (parseInt(b, 10) << 16) |
+    (parseInt(c, 10) << 8) |
+    parseInt(d, 10);
   const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
   const net = ipNum & mask;
   const size = 2 ** (32 - prefix);
@@ -71,49 +77,64 @@ function estimateHosts(cidr: string): number {
   return usable;
 }
 
-// Quick UI helpers
 function resetResult() {
-  progress.value = [];
+  progressDone.value = 0;
+  progressTotal.value = 0;
+  aliveRows.value = [];
   report.value = null;
   err.value = null;
 }
+
 function fmtMs(v?: number | null) {
   return v == null ? "-" : `${v} ms`;
 }
 
 const targetCount = computed(() =>
-  form.mode === "cidr" ? estimateHosts(form.cidr) : new Set(
-    (form.list || "").split(/[\s,;]+/).map(s => s.trim()).filter(Boolean)
-  ).size
+  form.mode === "cidr"
+    ? estimateHosts(form.cidr)
+    : new Set(
+        (form.list || "")
+          .split(/[\s,;]+/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ).size,
 );
 
-const canStart = computed(() =>
-  targetCount.value > 0 &&
-  (form.mode !== "cidr" || targetCount.value <= MAX_EXPAND) &&
-  !loading.value && !running.value
+const canStart = computed(
+  () =>
+    targetCount.value > 0 &&
+    (form.mode !== "cidr" || targetCount.value <= MAX_EXPAND) &&
+    !loading.value &&
+    !running.value,
 );
 
-const sent = computed(() =>
-  progress.value.length > 0 ? progress.value[progress.value.length - 1].done : 0
-);
-const total = computed(() =>
-  progress.value.length > 0 ? progress.value[progress.value.length - 1].total : (report.value?.total ?? 0)
-);
-const pct = computed(() =>
-  total.value > 0 ? Math.min(100, Math.round((sent.value / total.value) * 100)) : 0
-);
+const progressPct = computed(() => {
+  const t = progressTotal.value || 0;
+  const d = progressDone.value || 0;
+  if (!t) return 0;
+  return Math.min(100, Math.round((d / t) * 100));
+});
+
+const aliveCount = computed(() => aliveRows.value.length);
+const unreachableCount = computed(() => {
+  if (!report.value) return 0;
+  return report.value.unreachable.length;
+});
 
 function parseTargetsForStart(): string[] {
   if (form.mode === "cidr") {
     return expandIpv4Cidr(form.cidr, MAX_EXPAND);
   }
   const raw = form.list || "";
-  const tokens = raw.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean);
+  const tokens = raw
+    .split(/[\s,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   return Array.from(new Set(tokens));
 }
 
-
 let unlistenProgress: UnlistenFn | null = null;
+let unlistenAlive: UnlistenFn | null = null;
 let unlistenDone: UnlistenFn | null = null;
 
 async function startScan() {
@@ -122,15 +143,17 @@ async function startScan() {
   const targets = parseTargetsForStart();
   if (targets.length === 0) {
     const est = form.mode === "cidr" ? estimateHosts(form.cidr) : 0;
-    err.value = est > MAX_EXPAND
-      ? `Target too large (${est} hosts). Please use a narrower CIDR or increase the limit.`
-      : "No targets. Add CIDR or IP list.";
+    err.value =
+      est > MAX_EXPAND
+        ? `Target too large (${est} hosts). Please use a narrower CIDR or increase the limit.`
+        : "No targets. Add CIDR or IP list.";
     return;
   }
 
   running.value = true;
   loading.value = true;
-  const setting: HostScanSetting = {
+
+  const setting: HostScanRequest = {
     targets,
     hop_limit: form.hop_limit,
     timeout_ms: form.timeout_ms,
@@ -143,6 +166,11 @@ async function startScan() {
   try {
     const rep = await invoke<HostScanReport>("host_scan", { setting });
     report.value = rep;
+    aliveRows.value = rep.alive.map(([host, rtt]) => ({
+      ip: String(host.ip),
+      hostname: host.hostname,
+      rtt,
+    }));
   } catch (e: any) {
     err.value = String(e?.message ?? e);
   } finally {
@@ -152,29 +180,59 @@ async function startScan() {
 }
 
 onMounted(async () => {
-  // progress
-  unlistenProgress = await listen<HostScanProgress>("hostscan:progress", ev => {
+  // Lightweight progress: (done, total)
+  unlistenProgress = await listen("hostscan:progress", (ev: any) => {
+    const payload = ev?.payload;
+    if (!payload) return;
+    const [done, total] = payload as [number, number];
+    progressDone.value = done;
+    progressTotal.value = total;
+  });
+
+  // Alive hosts only
+  unlistenAlive = await listen<HostScanProgress>("hostscan:alive", (ev) => {
     const p = ev.payload;
     if (!p) return;
-    progress.value = [...progress.value, p];
+    aliveRows.value = [
+      ...aliveRows.value,
+      {
+        ip: String(p.ip_addr),
+        rtt: p.rtt_ms ?? null,
+      },
+    ];
   });
-  // done
-  unlistenDone = await listen<HostScanReport>("hostscan:done", ev => {
-    if (ev.payload) report.value = ev.payload;
+
+  // Final report
+  unlistenDone = await listen<HostScanReport>("hostscan:done", (ev) => {
+    const rep = ev.payload;
+    if (!rep) return;
+    report.value = rep;
+    aliveRows.value = rep.alive.map(([host, rtt]) => ({
+      ip: String(host.ip),
+      hostname: host.hostname,
+      rtt,
+    }));
     running.value = false;
   });
 });
 
 onBeforeUnmount(() => {
   unlistenProgress?.();
+  unlistenAlive?.();
   unlistenDone?.();
 });
 </script>
 
 <template>
-  <div ref="wrapRef" class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 h-full min-h-0">
+  <div
+    ref="wrapRef"
+    class="px-3 pt-3 pb-0 lg:px-4 lg:pt-4 lg:pb-0 flex flex-col gap-3 h-full min-h-0"
+  >
     <!-- Toolbar -->
-    <div ref="toolbarRef" class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-center">
+    <div
+      ref="toolbarRef"
+      class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-center"
+    >
       <div class="flex items-end gap-3 min-w-0 flex-wrap">
         <!-- Mode -->
         <div class="flex flex-col gap-1">
@@ -183,7 +241,7 @@ onBeforeUnmount(() => {
             v-model="form.mode"
             :options="[
               { label: 'CIDR (IPv4)', value: 'cidr' },
-              { label: 'List (IPs)',  value: 'list' },
+              { label: 'List (Hosts)', value: 'list' },
             ]"
             optionLabel="label"
             optionValue="value"
@@ -192,28 +250,46 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- CIDR / List -->
-        <div v-if="form.mode==='cidr'" class="flex flex-col gap-1">
+        <div v-if="form.mode === 'cidr'" class="flex flex-col gap-1">
           <label class="text-xs text-surface-500">CIDR</label>
-          <InputText v-model="form.cidr" placeholder="e.g. 192.168.1.0/24" class="w-[220px]" />
+          <InputText
+            v-model="form.cidr"
+            placeholder="e.g. 192.168.1.0/24"
+            class="w-[220px]"
+          />
         </div>
         <div v-else class="flex flex-col gap-1">
-          <label class="text-xs text-surface-500">IP List (newline / space / comma)</label>
+          <label class="text-xs text-surface-500"
+            >Host List (newline / space / comma)</label
+          >
           <Textarea v-model="form.list" rows="2" class="w-[280px]" />
         </div>
 
         <!-- Options -->
         <div class="flex flex-col gap-1">
           <label class="text-xs text-surface-500">Timeout (ms)</label>
-          <InputNumber v-model="form.timeout_ms" :min="100" :max="60000" :step="100" inputClass="w-[120px]" />
+          <InputNumber
+            v-model="form.timeout_ms"
+            :min="100"
+            :max="60000"
+            :step="100"
+            inputClass="w-[120px]"
+          />
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-xs text-surface-500">TTL / Hop Limit</label>
-          <InputNumber v-model="form.hop_limit" :min="1" :max="255" inputClass="w-[120px]" />
+          <InputNumber
+            v-model="form.hop_limit"
+            :min="1"
+            :max="255"
+            inputClass="w-[120px]"
+          />
         </div>
         <div class="flex items-center gap-2 mb-2">
           <Checkbox v-model="form.ordered" :binary="true" inputId="ordered" />
           <label for="ordered" class="text-sm">Ordered</label>
         </div>
+
         <!-- Target count preview -->
         <div class="flex flex-col gap-1">
           <label class="text-xs text-surface-500">Targets</label>
@@ -222,95 +298,101 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="flex flex-wrap items-end gap-3 justify-end">
-        <!-- Actions -->
         <div class="flex items-center gap-2">
-          <Button label="Start" icon="pi pi-play" :disabled="!canStart" :loading="loading" @click="startScan" />
+          <Button
+            label="Start"
+            icon="pi pi-play"
+            :disabled="!canStart"
+            :loading="loading"
+            @click="startScan"
+          />
         </div>
       </div>
     </div>
 
     <div class="flex-1 min-h-0">
-    <!-- Scrollable content -->
-    <ScrollPanel :style="{ width: '100%', height: panelHeight }" class="flex-1 min-h-0">
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
-        <!-- Progress -->
-        <Card>
-          <template #title>Progress</template>
-          <template #content>
-            <div class="flex items-center justify-between mb-2">
-              <div class="text-sm text-surface-500">Scanned: {{ sent }} / {{ total }}</div>
-              <div class="text-sm text-surface-500">{{ pct }}%</div>
-            </div>
-            <ProgressBar :value="pct" />
-
-            <div class="mt-3">
-              <DataTable
-                :value="progress"
-                size="small"
-                stripedRows
-                class="text-sm"
-                :rows="10" paginator :rowsPerPageOptions="[10,20,50]"
-                sortMode="single" sortField="ip_addr" :sortOrder="1"
+      <!-- Scrollable content -->
+      <ScrollPanel
+        :style="{ width: '100%', height: panelHeight }"
+        class="flex-1 min-h-0"
+      >
+        <div class="grid grid-cols-1 gap-3">
+          <!-- Progress -->
+          <Card>
+            <template #title>Progress</template>
+            <template #content>
+              <div
+                class="flex items-center justify-between mb-2 text-sm text-surface-500"
               >
-                <Column field="ip_addr" header="IP" sortable />
-                <Column header="State" style="width: 120px" sortField="state" sortable>
-                  <template #body="{ data }">
-                    <Tag :value="data.state" :severity="data.state==='Alive' ? 'success' : 'warn'" />
-                  </template>
-                </Column>
-                <Column header="RTT" sortField="rtt_ms" sortable>
-                  <template #body="{ data }">{{ fmtMs(data.rtt_ms) }}</template>
-                </Column>
-                <Column header="Message">
-                  <template #body="{ data }">
-                    <span class="text-surface-500" v-if="data.message">{{ data.message }}</span>
-                    <span v-else>-</span>
-                  </template>
-                </Column>
-              </DataTable>
-            </div>
-          </template>
-        </Card>
-
-        <!-- Summary -->
-        <Card>
-          <template #title>Summary</template>
-          <template #content>
-            <div v-if="err" class="text-red-500 text-sm mb-2">{{ err }}</div>
-            <template v-if="report">
-              <div class="grid grid-cols-2 gap-3 text-sm">
-                <div class="rounded-lg bg-surface-50 dark:bg-surface-900 p-3">
-                  <div class="text-surface-500 text-xs">Alive</div>
-                  <div class="font-medium">{{ report.alive.length }}</div>
+                <div>
+                  Scanned: {{ progressDone }} / {{ progressTotal || "-" }}
                 </div>
-                <div class="rounded-lg bg-surface-50 dark:bg-surface-900 p-3">
+                <div>{{ progressPct }}%</div>
+              </div>
+              <ProgressBar :value="progressPct" />
+              <div class="mt-2 text-xs text-surface-500">
+                Alive hosts found:
+                <span class="font-mono">{{ aliveCount }}</span>
+              </div>
+            </template>
+          </Card>
+
+          <!-- Summary -->
+          <Card>
+            <template #title>Summary</template>
+            <template #content>
+              <div v-if="err" class="text-red-500 text-sm mb-2">
+                {{ err }}
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 text-sm mb-3">
+                <div
+                  class="rounded-lg bg-surface-50 dark:bg-surface-900 p-3"
+                >
+                  <div class="text-surface-500 text-xs">Alive</div>
+                  <div class="font-medium">{{ aliveCount }}</div>
+                </div>
+                <div
+                  class="rounded-lg bg-surface-50 dark:bg-surface-900 p-3"
+                >
                   <div class="text-surface-500 text-xs">Unreachable</div>
-                  <div class="font-medium">{{ report.unreachable.length }}</div>
+                  <div class="font-medium">{{ unreachableCount }}</div>
                 </div>
               </div>
 
-              <div class="mt-3">
-                <div class="font-semibold mb-1">Alive Hosts</div>
+              <template v-if="aliveRows.length">
+                <div class="font-semibold mb-1 text-sm">Alive Hosts</div>
                 <DataTable
-                  :value="report.alive.map(([ip, rtt]) => ({ ip, rtt }))"
-                  size="small" stripedRows class="text-sm"
-                  :rows="10" paginator :rowsPerPageOptions="[10,20,50]"
-                  sortMode="single" sortField="ip" :sortOrder="1"
+                  :value="aliveRows"
+                  size="small"
+                  stripedRows
+                  class="text-sm"
+                  :rows="10"
+                  paginator
+                  :rowsPerPageOptions="[10, 20, 50]"
+                  sortMode="single"
+                  sortField="ip"
+                  :sortOrder="1"
                 >
                   <Column field="ip" header="IP" sortable />
-                  <Column header="RTT" sortField="rtt" sortable>
-                    <template #body="{ data }">{{ fmtMs(data.rtt) }}</template>
+                  <Column field="hostname" header="Hostname" sortable />
+                  <Column field="rtt" header="RTT" sortable>
+                    <template #body="{ data }">
+                      {{ fmtMs(data.rtt) }}
+                    </template>
                   </Column>
                 </DataTable>
-              </div>
+              </template>
+
+              <template v-else>
+                <div class="text-surface-500 text-sm">
+                  Run a scan to see alive hosts.
+                </div>
+              </template>
             </template>
-            <template v-else>
-              <div class="text-surface-500 text-sm">Run a scan to see results.</div>
-            </template>
-          </template>
-        </Card>
-      </div>
-    </ScrollPanel>
+          </Card>
+        </div>
+      </ScrollPanel>
     </div>
   </div>
 </template>

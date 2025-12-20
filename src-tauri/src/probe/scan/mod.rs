@@ -3,6 +3,7 @@ pub mod quic;
 pub mod tcp;
 pub mod neigh;
 pub mod tuner;
+pub mod progress;
 
 use crate::model::scan::TargetPortsPreset;
 

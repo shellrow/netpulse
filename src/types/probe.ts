@@ -1,3 +1,5 @@
+import { Host } from "./net";
+
 export type ProbeStatusKind = "Done" | "Error" | "Timeout";
 export type PingProtocol = "Icmp" | "Tcp" | "Udp" | "Quic" | "Http";
 
@@ -45,6 +47,32 @@ export type TargetPortsPreset = "Common" | "WellKnown" | "Full" | "Top1000" | "C
 
 export type PortState = "Open" | "Closed" | "Filtered";
 
+export interface TlsInfo {
+  version?: string | null;
+  cipher_suite?: string | null;
+  alpn?: string | null;
+  sni?: string | null;
+  subject?: string | null;
+  issuer?: string | null;
+  not_before?: string | null;
+  not_after?: string | null;
+  san_list: string[];
+  serial_hex?: string | null;
+  sig_algorithm?: string | null;
+  pubkey_algorithm?: string | null;
+}
+
+export interface ServiceInfo {
+  name?: string | null;
+  product?: string | null;
+  version?: string | null;
+  quic_version?: string | null;
+  banner?: string | null;
+  raw?: string | null;
+  cpes: string[];
+  tls_info?: TlsInfo | null;
+}
+
 export interface PortScanSample {
   ip_addr: string;
   port: number;
@@ -52,6 +80,7 @@ export interface PortScanSample {
   rtt_ms?: number | null;
   message?: string | null;
   service_name?: string | null;
+  service_info?: ServiceInfo | null;
   done?: number;
   total?: number;
 }
@@ -72,6 +101,7 @@ export interface PortScanSetting {
   protocol: PortScanProtocol;
   timeout_ms: number;
   ordered: boolean;
+  service_detection: boolean;
 }
 
 export type HostState = "Alive" | "Unreachable";
@@ -87,12 +117,12 @@ export interface HostScanProgress {
 
 export interface HostScanReport {
   run_id: string;
-  alive: [string, number][];
-  unreachable: string[];
+  alive: [Host, number][];
+  unreachable: Host[];
   total: number;
 }
 
-export interface HostScanSetting {
+export interface HostScanRequest {
   targets: string[];
   hop_limit: number;
   timeout_ms: number;

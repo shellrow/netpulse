@@ -3,15 +3,16 @@ use futures::{stream, StreamExt};
 use rand::{seq::SliceRandom, thread_rng, Rng};
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{oneshot, Mutex};
 
+use crate::model::endpoint::Host;
 use crate::model::scan::{HostScanProgress, HostScanReport, HostScanSetting, HostState};
 use crate::probe::packet::{build_icmp_echo_bytes, parse_icmp_echo_v4, parse_icmp_echo_v6};
 use crate::probe::scan::tuner::hosts_concurrency;
+use crate::probe::scan::progress::ThrottledProgress;
 use crate::socket::icmp::{AsyncIcmpSocket, IcmpConfig, IcmpKind};
 use crate::socket::SocketFamily;
 
@@ -59,8 +60,6 @@ pub async fn host_scan(
     src_ipv6: Option<IpAddr>,
     mut setting: HostScanSetting,
 ) -> Result<HostScanReport> {
-    let total = setting.targets.len() as u32;
-    let done_ctr = Arc::new(AtomicU32::new(0));
     let timeout = Duration::from_millis(setting.timeout_ms);
     let payload = setting
         .payload
@@ -71,7 +70,17 @@ pub async fn host_scan(
         setting.targets.shuffle(&mut thread_rng());
     }
 
-    let socket_v4 = if setting.targets.iter().any(|ip| ip.is_ipv4()) {
+    let target_hosts: Vec<Host> = setting.resolve_targets().await;
+    let target_map : HashMap<IpAddr, Host> = target_hosts
+        .iter()
+        .map(|h| (h.ip, h.clone()))
+        .collect();
+
+    let total = target_map.len() as u32;
+
+    let progress = Arc::new(ThrottledProgress::new(total));
+
+    let socket_v4 = if target_map.keys().into_iter().any(|ip| ip.is_ipv4()) {
         let mut cfg = IcmpConfig::new(IcmpKind::V4);
         cfg = cfg.with_ttl(setting.hop_limit.max(1) as u32);
         Some(Arc::new(AsyncIcmpSocket::new(&cfg).await?))
@@ -79,7 +88,7 @@ pub async fn host_scan(
         None
     };
 
-    let socket_v6 = if setting.targets.iter().any(|ip| ip.is_ipv6()) {
+    let socket_v6 = if target_map.keys().into_iter().any(|ip| ip.is_ipv6()) {
         let mut cfg = IcmpConfig::new(IcmpKind::V6);
         cfg = cfg.with_hoplimit(setting.hop_limit.max(1) as u32);
         Some(Arc::new(AsyncIcmpSocket::new(&cfg).await?))
@@ -110,8 +119,9 @@ pub async fn host_scan(
     let payload_cl = payload.clone();
     let count_cl = setting.count.max(1);
     let total_cl = total;
+    let progress_cl = progress.clone();
 
-    let mut stream_send = stream::iter(setting.targets.clone().into_iter())
+    let mut stream_send = stream::iter(target_map.keys().cloned().into_iter())
         .map(move |dst_ip| {
             let app = app_cl.clone();
             let socket_v4 = socket_v4_for_tasks.clone();
@@ -122,12 +132,12 @@ pub async fn host_scan(
             let payload = payload_cl.clone();
             let cnt = count_cl;
             let total = total_cl;
-            let done_ctr = done_ctr.clone();
             let src_ipv4 = src_ipv4;
             let src_ipv6 = src_ipv6;
+            let progress = progress_cl.clone();
 
             async move {
-                // If no suitable socket, emit unreachable immediately
+                // If no suitable socket, mark unreachable
                 let (sock_opt, pending_map, src_ip) = match SocketFamily::from_ip(&dst_ip) {
                     SocketFamily::IPV4 => (
                         socket_v4.clone(),
@@ -141,104 +151,117 @@ pub async fn host_scan(
                     ),
                 };
 
-                let Some(sock) = sock_opt else {
-                    let done = done_ctr.fetch_add(1, Ordering::Relaxed) + 1;
-                    let p = HostScanProgress {
-                        ip_addr: dst_ip,
-                        state: HostState::Unreachable,
-                        rtt_ms: None,
-                        message: Some("no suitable socket for IP family".into()),
-                        done,
-                        total,
-                    };
-                    let _ = app.emit("hostscan:progress", p.clone());
-                    return p;
-                };
+                let (state, rtt_ms, message) = if let Some(sock) = sock_opt {
+                    let target = SocketAddr::new(dst_ip, 0);
+                    let mut best_rtt: Option<u64> = None;
+                    let mut last_err: Option<String> = None;
 
-                let target = SocketAddr::new(dst_ip, 0);
-                let mut best_rtt: Option<u64> = None;
-                let mut last_err: Option<String> = None;
+                    for seq in 1..=cnt {
+                        // Register pending
+                        let id: u16 = rand::thread_rng().gen();
+                        let (tx, rx) = oneshot::channel::<u64>();
 
-                for seq in 1..=cnt {
-                    // Regist pending
-                    let id: u16 = rand::thread_rng().gen();
-                    let (tx, rx) = oneshot::channel::<u64>();
+                        {
+                            let mut map = pending_map.lock().await;
+                            map.insert(
+                                dst_ip,
+                                Pending {
+                                    ip: dst_ip,
+                                    sent_at: Instant::now(),
+                                    tx,
+                                },
+                            );
+                        }
 
-                    {
-                        let mut map = pending_map.lock().await;
-                        map.insert(
+                        // Build ICMP Echo Request packet
+                        let pkt = build_icmp_echo_bytes(
+                            src_ip,
                             dst_ip,
-                            Pending {
-                                ip: dst_ip,
-                                sent_at: Instant::now(),
-                                tx,
-                            },
+                            id,
+                            seq as u16,
+                            payload.as_bytes(),
                         );
-                    }
 
-                    // Build ICMP Echo Request packet
-                    let pkt =
-                        build_icmp_echo_bytes(src_ip, dst_ip, id, seq as u16, payload.as_bytes());
-
-                    // Send ICMP Echo Request
-                    if let Err(e) = sock.send_to(&pkt, target).await {
-                        let mut map = pending_map.lock().await;
-                        map.remove(&dst_ip);
-                        last_err = Some(format!("send error: {}", e));
-                        continue;
-                    }
-
-                    // Wait for reply or timeout
-                    match tokio::time::timeout(timeout, rx).await {
-                        Ok(Ok(rtt)) => {
-                            best_rtt = Some(best_rtt.map_or(rtt, |b| b.min(rtt)));
-                            break;
-                        }
-                        Ok(Err(_canceled)) => {
-                            last_err = Some("wait canceled".into());
-                        }
-                        Err(_to) => {
+                        // Send ICMP Echo Request
+                        if let Err(e) = sock.send_to(&pkt, target).await {
                             let mut map = pending_map.lock().await;
                             map.remove(&dst_ip);
-                            last_err = Some(format!("timeout (>{}ms)", timeout.as_millis()));
+                            last_err = Some(format!("send error: {}", e));
+                            continue;
+                        }
+
+                        // Wait for reply or timeout
+                        match tokio::time::timeout(timeout, rx).await {
+                            Ok(Ok(rtt)) => {
+                                best_rtt = Some(best_rtt.map_or(rtt, |b| b.min(rtt)));
+                                break;
+                            }
+                            Ok(Err(_canceled)) => {
+                                last_err = Some("wait canceled".into());
+                            }
+                            Err(_to) => {
+                                let mut map = pending_map.lock().await;
+                                map.remove(&dst_ip);
+                                last_err = Some(format!("timeout (>{}ms)", timeout.as_millis()));
+                            }
                         }
                     }
-                }
 
-                let done = done_ctr.fetch_add(1, Ordering::Relaxed) + 1;
-                let p = if let Some(rtt) = best_rtt {
-                    HostScanProgress {
-                        ip_addr: dst_ip,
-                        state: HostState::Alive,
-                        rtt_ms: Some(rtt),
-                        message: None,
-                        done,
-                        total,
+                    if let Some(rtt) = best_rtt {
+                        (HostState::Alive, Some(rtt), None)
+                    } else {
+                        (HostState::Unreachable, None, last_err)
                     }
                 } else {
-                    HostScanProgress {
-                        ip_addr: dst_ip,
-                        state: HostState::Unreachable,
-                        rtt_ms: None,
-                        message: last_err,
-                        done,
-                        total,
-                    }
+                    (
+                        HostState::Unreachable,
+                        None,
+                        Some("no suitable socket for IP family".into()),
+                    )
                 };
-                let _ = app.emit("hostscan:progress", p.clone());
-                p
+
+                let (done, should_emit) = progress.on_advance();
+
+                let progress_sample = HostScanProgress {
+                    ip_addr: dst_ip,
+                    state,
+                    rtt_ms,
+                    message,
+                    done,
+                    total,
+                };
+
+                // Emit alive host event with detailed info
+                if matches!(progress_sample.state, HostState::Alive) {
+                    let _ = app.emit("hostscan:alive", progress_sample.clone());
+                }
+
+                // Lightweight progress event: (done, total)
+                if should_emit {
+                    let _ = app.emit("hostscan:progress", (done, total));
+                }
+
+                progress_sample
             }
         })
         .buffer_unordered(concurrency);
 
     // Collect results
-    let mut alive: Vec<(IpAddr, u64)> = Vec::new();
-    let mut unreachable: Vec<IpAddr> = Vec::new();
+    let mut alive: Vec<(Host, u64)> = Vec::new();
+    let mut unreachable: Vec<Host> = Vec::new();
 
     while let Some(p) = stream_send.next().await {
         match p.state {
-            HostState::Alive => alive.push((p.ip_addr, p.rtt_ms.unwrap_or(0))),
-            HostState::Unreachable => unreachable.push(p.ip_addr),
+            HostState::Alive => {
+                if let Some(host) = target_map.get(&p.ip_addr) {
+                    alive.push((host.clone(), p.rtt_ms.unwrap_or(0)));
+                }
+            },
+            HostState::Unreachable => {
+                if let Some(host) = target_map.get(&p.ip_addr) {
+                    unreachable.push(host.clone());
+                }
+            },
         }
     }
 
