@@ -478,7 +478,7 @@ onBeforeUnmount(() => {
                         <div>
                           <span class="text-surface-500">MAC:</span>
                           <span
-                            class="font-mono"
+                            class="font-mono copyable"
                             :class="{ 'text-surface-500': !publicIpVisible }"
                           >
                             {{ maskMac(defaultIface.mac_addr) }}
@@ -579,7 +579,7 @@ onBeforeUnmount(() => {
                           v-for="(v, i) in defaultIface.ipv4 ?? []"
                           :key="'v4-' + i"
                           :label="maskIpLabel(v)"
-                          :class="['font-mono', !publicIpVisible && 'text-surface-500']"
+                          :class="['font-mono', 'copyable', !publicIpVisible && 'text-surface-500']"
                         />
                         <span
                           v-if="(defaultIface.ipv4?.length ?? 0) === 0"
@@ -594,7 +594,7 @@ onBeforeUnmount(() => {
                           v-for="(v, i) in defaultIface.ipv6 ?? []"
                           :key="'v6-' + i"
                           :label="maskIpLabel(v)"
-                          :class="['font-mono', !publicIpVisible && 'text-surface-500']"
+                          :class="['font-mono', 'copyable', !publicIpVisible && 'text-surface-500']"
                         />
                         <span
                           v-if="(defaultIface.ipv6?.length ?? 0) === 0"
@@ -625,16 +625,17 @@ onBeforeUnmount(() => {
                         <div class="text-surface-500 text-xs">Gateway</div>
                         <div class="mt-1">
                           <template v-if="defaultIface.gateway">
-                            <div
-                              class="font-mono"
+                            MAC: 
+                            <span
+                              class="font-mono copyable"
                               :class="{ 'text-surface-500': !publicIpVisible }"
                             >
-                              MAC: {{ maskMac(defaultIface.gateway.mac_addr) }}
-                            </div>
+                              {{ maskMac(defaultIface.gateway.mac_addr) }}
+                            </span>
                             <div v-if="defaultIface.gateway.ipv4.length > 0">
                               IPv4:
                               <span
-                                class="font-mono"
+                                class="font-mono copyable"
                                 :class="{ 'text-surface-500': !publicIpVisible }"
                               >
                                 {{ pubIpGate(defaultIface.gateway.ipv4.join(", ")) }}
@@ -643,7 +644,7 @@ onBeforeUnmount(() => {
                             <div v-if="defaultIface.gateway.ipv6.length > 0">
                               IPv6:
                               <span
-                                class="font-mono"
+                                class="font-mono copyable"
                                 :class="{ 'text-surface-500': !publicIpVisible }"
                               >
                                 {{ pubIpGate(defaultIface.gateway.ipv6.join(", ")) }}
@@ -660,7 +661,7 @@ onBeforeUnmount(() => {
                             v-for="(d, i) in defaultIface.dns_servers ?? []"
                             :key="'dns-' + i"
                             :label="d"
-                            class="font-mono"
+                            class="font-mono copyable"
                           />
                           <span
                             v-if="(defaultIface.dns_servers?.length ?? 0) === 0"

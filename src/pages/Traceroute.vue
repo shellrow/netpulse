@@ -349,7 +349,7 @@ function fmtIp(ip?: string | null) {
                 size="small"
                 scrollable
                 scrollHeight="45vh"
-                class="text-sm"
+                class="text-sm copyable"
               >
                 <Column field="hop" header="#" style="width: 60px" />
 

@@ -254,7 +254,7 @@ const filtered = computed(() => {
       sortMode="single"
       scrollable
       :scrollHeight="tableHeight"
-      class="text-sm"
+      class="text-sm copyable"
       stripedRows
       selectionMode="single"
       @rowSelect="onRowSelect"
@@ -347,7 +347,7 @@ const filtered = computed(() => {
                 <div><span class="text-surface-500">Type:</span> <span>{{ fmtIfType(selectedInterface?.if_type) }}</span></div>
                 <div><span class="text-surface-500">Friendly:</span> <span>{{ selectedInterface?.friendly_name ?? '-' }}</span></div>
                 <div><span class="text-surface-500">Description:</span> <span>{{ selectedInterface?.description ?? '-' }}</span></div>
-                <div><span class="text-surface-500">MAC:</span> <span class="font-mono">{{ selectedInterface?.mac_addr ?? '-' }}</span></div>
+                <div><span class="text-surface-500">MAC:</span> <span class="font-mono copyable">{{ selectedInterface?.mac_addr ?? '-' }}</span></div>
                 <div><span class="text-surface-500">MTU:</span> <span>{{ selectedInterface?.mtu ?? '-' }}</span></div>
                 <div><span class="text-surface-500">Flags:</span> <span class="font-mono">{{ hexFlags(selectedInterface?.flags) }}</span></div>
                 </div>
@@ -392,14 +392,14 @@ const filtered = computed(() => {
             <div class="mb-2">
                 <span class="text-surface-500 text-xs">IPv4</span>
                 <div class="mt-1 flex flex-wrap gap-2">
-                <Chip v-for="(v,i) in (selectedInterface?.ipv4 ?? [])" :key="'v4-'+i" :label="typeof v==='string' ? v : `${v.addr}/${v.prefix_len}`" class="font-mono" />
+                <Chip v-for="(v,i) in (selectedInterface?.ipv4 ?? [])" :key="'v4-'+i" :label="typeof v==='string' ? v : `${v.addr}/${v.prefix_len}`" class="font-mono copyable" />
                 <span v-if="(selectedInterface?.ipv4?.length ?? 0) === 0">-</span>
                 </div>
             </div>
             <div>
                 <span class="text-surface-500 text-xs">IPv6</span>
                 <div class="mt-1 flex flex-wrap gap-2">
-                <Chip v-for="(v,i) in (selectedInterface?.ipv6 ?? [])" :key="'v6-'+i" :label="typeof v==='string' ? v : `${v.addr}/${v.prefix_len}`" class="font-mono" />
+                <Chip v-for="(v,i) in (selectedInterface?.ipv6 ?? [])" :key="'v6-'+i" :label="typeof v==='string' ? v : `${v.addr}/${v.prefix_len}`" class="font-mono copyable" />
                 <span v-if="(selectedInterface?.ipv6?.length ?? 0) === 0">-</span>
                 </div>
                 <div class="text-xs text-surface-500 mt-2" v-if="(selectedInterface?.ipv6_scope_ids?.length ?? 0) > 0">
@@ -415,12 +415,13 @@ const filtered = computed(() => {
                     <div class="text-surface-500 text-xs">Gateway</div>
                     <div class="mt-1">
                         <div v-if="selectedInterface?.gateway">
-                        <div class="font-mono">MAC: {{ selectedInterface.gateway.mac_addr }}</div>
+                        MAC: 
+                        <span class="font-mono copyable">{{ selectedInterface.gateway.mac_addr }}</span>
                         <div v-if="selectedInterface.gateway.ipv4.length > 0">
-                            IPv4: <span class="font-mono">{{ selectedInterface.gateway.ipv4.join(', ') }}</span>
+                            IPv4: <span class="font-mono copyable">{{ selectedInterface.gateway.ipv4.join(', ') }}</span>
                         </div>
                         <div v-if="selectedInterface.gateway.ipv6.length > 0">
-                            IPv6: <span class="font-mono">{{ selectedInterface.gateway.ipv6.join(', ') }}</span>
+                            IPv6: <span class="font-mono copyable">{{ selectedInterface.gateway.ipv6.join(', ') }}</span>
                         </div>
                         </div>
                         <span v-else>-</span>
@@ -429,7 +430,7 @@ const filtered = computed(() => {
                 <div>
                 <div class="text-surface-500 text-xs">DNS</div>
                 <div class="mt-1 flex flex-wrap gap-2">
-                    <Chip v-for="(d,i) in (selectedInterface?.dns_servers ?? [])" :key="'dns-'+i" :label="d" class="font-mono" />
+                    <Chip v-for="(d,i) in (selectedInterface?.dns_servers ?? [])" :key="'dns-'+i" :label="d" class="font-mono copyable" />
                     <span v-if="(selectedInterface?.dns_servers?.length ?? 0) === 0">-</span>
                 </div>
                 </div>

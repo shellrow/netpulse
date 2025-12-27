@@ -24,11 +24,6 @@ async function refresh() {
   }
 }
 
-// Copy helper
-function copy(text: string) {
-  navigator.clipboard?.writeText(text).catch(() => {});
-}
-
 onMounted(refresh);
 
 // @ts-ignore -- used in template refs
@@ -61,9 +56,8 @@ const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
               <div class="flex items-center justify-between bg-surface-50/5 rounded-lg px-3 py-2">
                 <div>
                   <div class="text-xs text-surface-500">Address</div>
-                  <div class="font-mono text-sm" :class="{ 'text-surface-500': !publicIpVisible }">{{ pubIpGate(ipv4.ip_addr) }}</div>
+                  <div class="font-mono text-sm copyable" :class="{ 'text-surface-500': !publicIpVisible }">{{ pubIpGate(ipv4.ip_addr) }}</div>
                 </div>
-                <Button icon="pi pi-copy" text @click="copy(ipv4.ip_addr)" />
               </div>
 
               <div class="grid grid-cols-2 gap-3 text-sm">
@@ -107,9 +101,8 @@ const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
               <div class="flex items-center justify-between bg-surface-50/5 rounded-lg px-3 py-2">
                 <div>
                   <div class="text-xs text-surface-500">Address</div>
-                  <div class="font-mono text-sm" :class="{ 'text-surface-500': !publicIpVisible }">{{ pubIpGate(ipv6.ip_addr) }}</div>
+                  <div class="font-mono text-sm copyable" :class="{ 'text-surface-500': !publicIpVisible }">{{ pubIpGate(ipv6.ip_addr) }}</div>
                 </div>
-                <Button icon="pi pi-copy" text @click="copy(ipv6.ip_addr)" />
               </div>
 
               <div class="grid grid-cols-2 gap-3 text-sm">

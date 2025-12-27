@@ -122,7 +122,7 @@ onBeforeUnmount(() => {
       sortMode="single"
       scrollable
       :scrollHeight="tableHeight"
-      class="text-sm"
+      class="text-sm copyable"
       stripedRows 
       resizableColumns 
       columnResizeMode="fit"
