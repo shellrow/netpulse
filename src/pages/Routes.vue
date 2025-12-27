@@ -114,6 +114,7 @@ onBeforeUnmount(() => {
     <!-- Table -->
     <DataTable
       :value="filtered"
+      size="small"
       :loading="loading"
       paginator
       :rows="20"

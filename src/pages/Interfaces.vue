@@ -246,6 +246,7 @@ const filtered = computed(() => {
     <DataTable
       :value="filtered"
       :loading="loading"
+      size="small"
       dataKey="index"
       paginator
       :rows="15"

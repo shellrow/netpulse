@@ -266,6 +266,7 @@ onBeforeUnmount(() => {
     <!-- Table -->
     <DataTable
       :value="tableRows"
+      size="small"
       :loading="loading"
       :rowKey="rowKey"
       paginator
