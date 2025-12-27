@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
 import type { AppConfig } from "../types/config";
 import { useTheme } from "../composables/useTheme";
-import { BPS_UNIT_KEY, normalizeBpsUnit, readBpsUnit } from "../utils/preferences";
+import { normalizeBpsUnit, readBpsUnit, LOCAL_SETTINGS } from "../utils/preferences";
 
 const { themeMode, setSystemTheme, setLightTheme, setDarkTheme } = useTheme();
 
@@ -25,22 +25,12 @@ const idleColor = "text-surface-700 dark:text-surface-200 hover:bg-surface-50 da
 const activeColor = "bg-surface-50 dark:bg-surface-800 text-surface-900 dark:text-surface-50 border-surface-200 dark:border-surface-700";
 const itemClass = (active: boolean) => `${baseItem} ${active ? activeColor : idleColor}`;
 
-// Local settings
-const LS = {
-  autostart: "np:set:autostart",
-  compact:   "np:sidebar:compact",
-  tooltips:  "np:set:tooltips",
-  theme:     "np:set:theme",          // system | light | dark
-  refresh:   "np:set:refresh_ms",
-  bpsUnit:   BPS_UNIT_KEY,       //  bits | bytes 
-};
-
 // Tauri app config
 const cfg = ref<AppConfig | null>(null);
 const loading = ref(false);
 const saving  = ref(false);
 
-const autostart   = ref(localStorage.getItem(LS.autostart) === "1");
+const autostart   = ref(localStorage.getItem(LOCAL_SETTINGS.autostart) === "1");
 const theme = computed<"system" | "light" | "dark">({
   get: () => themeMode.value,
   set: (v) => {
@@ -49,17 +39,17 @@ const theme = computed<"system" | "light" | "dark">({
     else setDarkTheme();
   },
 });
-const refreshMs   = ref<number>(parseInt(localStorage.getItem(LS.refresh) || "1000", 10));
+const refreshMs   = ref<number>(parseInt(localStorage.getItem(LOCAL_SETTINGS.refresh) || "1000", 10));
 const bpsUnit     = ref<"bytes"|"bits">(readBpsUnit(localStorage));
 
 type LogsPath = { folder: string; file?: string | null };
 
 const opening = ref(false);
 
-watch(autostart,   v => localStorage.setItem(LS.autostart, v ? "1" : "0"));
-watch(theme,       v => localStorage.setItem(LS.theme,     v));
-watch(refreshMs,   v => localStorage.setItem(LS.refresh,   String(v)));
-watch(bpsUnit,     v => localStorage.setItem(LS.bpsUnit,   v));
+watch(autostart,   v => localStorage.setItem(LOCAL_SETTINGS.autostart, v ? "1" : "0"));
+watch(theme,       v => localStorage.setItem(LOCAL_SETTINGS.theme,     v));
+watch(refreshMs,   v => localStorage.setItem(LOCAL_SETTINGS.refresh,   String(v)));
+watch(bpsUnit,     v => localStorage.setItem(LOCAL_SETTINGS.bpsUnit,   v));
 
 const fmtMs = (v:number) => `${v} ms`;
 
