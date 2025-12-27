@@ -7,25 +7,20 @@ import { formatBps, formatBytesPerSec } from "../types/net";
 import { severityByOper } from "../utils/formatter";
 import type { ChartData, ChartOptions } from "chart.js";
 import { hexToRgba } from "../utils/color";
+import { readBpsUnit, type UnitPref } from "../utils/preferences";
 import { useScrollPanelHeight } from "../composables/useScrollPanelHeight";
 
-type UnitPref = "bytes" | "bits";
 type TrafficSample = { ts: number; rx: number; tx: number };
-
-const LS_BPS_UNIT = "np:set:bps_unit";
 
 const ifaces = ref<NetworkInterface[]>([]);
 const selectedIndexes = ref<number[]>([]);
 
 const histories = reactive<Record<number, TrafficSample[]>>({});
 
-const bpsUnit = ref<UnitPref>(
-  (localStorage.getItem(LS_BPS_UNIT) as UnitPref) || "bytes",
-);
+const bpsUnit = ref<UnitPref>(readBpsUnit(localStorage));
 
 function refreshUnitPref() {
-  const v = (localStorage.getItem(LS_BPS_UNIT) as UnitPref) || "bytes";
-  bpsUnit.value = v === "bits" ? "bits" : "bytes";
+  bpsUnit.value = readBpsUnit(localStorage);
 }
 
 function formatThroughput(v?: number): string {

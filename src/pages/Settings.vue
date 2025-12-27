@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
 import type { AppConfig } from "../types/config";
 import { useTheme } from "../composables/useTheme";
+import { BPS_UNIT_KEY, normalizeBpsUnit, readBpsUnit } from "../utils/preferences";
 
 const { themeMode, setSystemTheme, setLightTheme, setDarkTheme } = useTheme();
 
@@ -31,7 +32,7 @@ const LS = {
   tooltips:  "np:set:tooltips",
   theme:     "np:set:theme",          // system | light | dark
   refresh:   "np:set:refresh_ms",
-  bpsUnit:   "np:set:bps_unit",       //  bits | bytes 
+  bpsUnit:   BPS_UNIT_KEY,       //  bits | bytes 
 };
 
 // Tauri app config
@@ -49,7 +50,7 @@ const theme = computed<"system" | "light" | "dark">({
   },
 });
 const refreshMs   = ref<number>(parseInt(localStorage.getItem(LS.refresh) || "1000", 10));
-const bpsUnit     = ref<"bytes"|"bits">((localStorage.getItem(LS.bpsUnit) as any) || "bits");
+const bpsUnit     = ref<"bytes"|"bits">(readBpsUnit(localStorage));
 
 type LogsPath = { folder: string; file?: string | null };
 
@@ -66,7 +67,7 @@ function applyFromConfig(c: AppConfig) {
   autostart.value = c.startup;
   theme.value     = c.theme;
   refreshMs.value = c.refresh_interval_ms;
-  bpsUnit.value   = c.data_unit;
+  bpsUnit.value   = normalizeBpsUnit(c.data_unit);
 }
 
 async function loadConfig() {

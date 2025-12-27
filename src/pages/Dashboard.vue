@@ -10,6 +10,7 @@ import { useScrollPanelHeight } from "../composables/useScrollPanelHeight";
 import { usePrivacyGate } from "../composables/usePrivacyGate";
 import type { ChartData, ChartOptions } from "chart.js";
 import { hexToRgba } from "../utils/color";
+import { readBpsUnit, type UnitPref } from "../utils/preferences";
 
 // @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
@@ -20,15 +21,10 @@ const loading = ref(false);
 const ifaces = ref<NetworkInterface[]>([]);
 const sys = ref<SysInfo | null>(null);
 
-type UnitPref = "bytes" | "bits";
-const LS_BPS_UNIT = "np:set:bps_unit";
-const bpsUnit = ref<UnitPref>(
-  (localStorage.getItem(LS_BPS_UNIT) as UnitPref) || "bytes",
-);
+const bpsUnit = ref<UnitPref>(readBpsUnit(localStorage));
 
 function refreshUnitPref() {
-  const v = (localStorage.getItem(LS_BPS_UNIT) as UnitPref) || "bytes";
-  bpsUnit.value = v === "bits" ? "bits" : "bytes";
+  bpsUnit.value = readBpsUnit(localStorage);
 }
 const rxLabel = computed(() =>
   bpsUnit.value === "bits" ? "RX bps" : "RX B/s",

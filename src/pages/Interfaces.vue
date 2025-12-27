@@ -6,18 +6,16 @@ import type { NetworkInterface } from "../types/net";
 import { ipListToString, formatBps, formatBytesPerSec, formatBytes } from "../types/net"; 
 import { DataTableRowSelectEvent } from 'primevue/datatable';
 import { fmtIfType, fmtDate, hexFlags, severityByOper, shortenIpList} from "../utils/formatter";
+import { readBpsUnit, type UnitPref } from "../utils/preferences";
 
 const wrapRef = ref<HTMLElement|null>(null);
 const toolbarRef = ref<HTMLElement|null>(null);
 const tableHeight = ref("400px");  
 
-type UnitPref = "bytes" | "bits";
-const LS_BPS_UNIT = "np:set:bps_unit";
-const bpsUnit = ref<UnitPref>((localStorage.getItem(LS_BPS_UNIT) as UnitPref) || "bytes");
+const bpsUnit = ref<UnitPref>(readBpsUnit(localStorage));
 
 function refreshUnitPref() {
-  const v = (localStorage.getItem(LS_BPS_UNIT) as UnitPref) || "bytes";
-  bpsUnit.value = v === "bits" ? "bits" : "bytes";
+  bpsUnit.value = readBpsUnit(localStorage);
 }
 
 let ro: ResizeObserver | null = null;
