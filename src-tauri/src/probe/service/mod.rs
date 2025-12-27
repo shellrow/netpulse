@@ -54,7 +54,7 @@ impl ServiceDetector {
                 for res in port_results {
                     match res {
                         Ok(r) => results.push(r),
-                        Err(e) => tracing::error!("Probe failed: {}", e),
+                        Err(e) => tracing::debug!("Probe failed: {}", e),
                     }
                 }
             }
