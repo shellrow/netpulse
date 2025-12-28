@@ -74,6 +74,20 @@ const chartOptions = ref<ChartOptions<"line">>({
   },
 });
 
+function pxToNumber(px: string | number | null | undefined): number {
+  if (px == null) return 0;
+  if (typeof px === "number") return px;
+  const m = String(px).match(/(\d+(\.\d+)?)/);
+  return m ? Number(m[1]) : 0;
+}
+
+const hopsTableHeight = computed(() => {
+  const ph = pxToNumber(panelHeight.value);
+  const RESERVED = 160;
+  const h = Math.max(200, ph - RESERVED);
+  return `${Math.floor(h)}px`;
+});
+
 function resetResult() {
   hops.value = [];
   doneInfo.value = null;
@@ -348,7 +362,7 @@ function fmtIp(ip?: string | null) {
                 :value="hops"
                 size="small"
                 scrollable
-                scrollHeight="45vh"
+                :scrollHeight="hopsTableHeight"
                 class="text-sm copyable"
               >
                 <Column field="hop" header="#" style="width: 60px" />
