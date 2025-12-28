@@ -76,7 +76,6 @@ const visibleColumns = ref<string[]>([
   "ipv6",
   "rx_bytes_per_sec",
   "tx_bytes_per_sec",
-  "mtu",
   "mac",
 ]);
 
@@ -174,7 +173,6 @@ const filtered = computed(() => {
         ipListToString(r.ipv4),
         ipListToString(r.ipv6),
         r.mac_addr ?? "",
-        String(r.mtu ?? ""),
       ]
         .join(" ")
         .toLowerCase();
