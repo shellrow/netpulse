@@ -5,7 +5,7 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import type { NetworkInterface } from "../types/net"; 
 import { ipListToString, formatBps, formatBytesPerSec, formatBytes } from "../types/net"; 
 import { DataTableRowSelectEvent } from 'primevue/datatable';
-import { fmtIfType, fmtDate, hexFlags, severityByOper, shortenIpList} from "../utils/formatter";
+import { fmtIfType, hexFlags, severityByOper, shortenIpList} from "../utils/formatter";
 import { readBpsUnit, type UnitPref } from "../utils/preferences";
 
 const wrapRef = ref<HTMLElement|null>(null);
@@ -372,9 +372,6 @@ const filtered = computed(() => {
                     <div class="text-surface-500 text-xs">TX total</div>
                     <div class="font-mono">{{ formatBytes(selectedInterface?.stats?.tx_bytes || 0) }}</div>
                 </div>
-                </div>
-                <div class="text-xs text-surface-500 mt-2">
-                Snapshot: {{ selectedInterface?.stats?.timestamp ? fmtDate(selectedInterface?.stats?.timestamp) : '-' }}
                 </div>
                 <div class="text-xs text-surface-500 mt-1">
                 Link Speed:
