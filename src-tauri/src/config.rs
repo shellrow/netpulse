@@ -14,6 +14,8 @@ pub mod bps_unit {
 pub struct AppConfig {
     /// Whether the app should start automatically.
     pub startup: bool,
+    /// Run in background (tray / menubar).
+    pub background: bool,
     /// Refresh interval in milliseconds.
     pub refresh_interval_ms: u64,
     /// Theme: "dark", "light", or "system".
@@ -35,6 +37,7 @@ impl AppConfig {
     pub fn new() -> AppConfig {
         AppConfig {
             startup: false,
+            background: false,
             refresh_interval_ms: 1000,
             theme: "system".to_string(),
             data_unit: bps_unit::BITS.to_string(),

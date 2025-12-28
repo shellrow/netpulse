@@ -43,6 +43,7 @@ fn tray_icon_bytes(dark: bool) -> &'static [u8] {
 pub fn run() {
     let app_conf: crate::config::AppConfig = crate::config::AppConfig::load();
     let startup = app_conf.startup;
+    let background = app_conf.background;
     let _ = crate::log::init_logger(&app_conf);
 
     let conf_state = ConfigState(tokio::sync::RwLock::new(app_conf));
@@ -67,64 +68,67 @@ pub fn run() {
                 }
             });
 
-            let tray_icon_bytes = tray_icon_bytes(theme_is_dark(&app));
-            let tray_icon = tauri::image::Image::from_bytes(tray_icon_bytes)
-                .unwrap_or(app.default_window_icon().unwrap().clone());
+            if background {
+                let tray_icon_bytes = tray_icon_bytes(theme_is_dark(&app));
+                let tray_icon = tauri::image::Image::from_bytes(tray_icon_bytes)
+                    .unwrap_or(app.default_window_icon().unwrap().clone());
 
-            let show_item = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
-            let hide_item = MenuItem::with_id(app, "hide", "Hide Window", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit NetPulse", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_item, &hide_item, &quit_item])?;
-            let _tray = TrayIconBuilder::with_id("tray")
-                .icon(tray_icon)
-                .menu(&menu)
-                .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "show" => {
-                        if let Some(win) = app.get_webview_window("main") {
-                            let _ = win.show();
-                            let _ = win.set_focus();
+                let show_item = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
+                let hide_item = MenuItem::with_id(app, "hide", "Hide Window", true, None::<&str>)?;
+                let quit_item =
+                    MenuItem::with_id(app, "quit", "Quit NetPulse", true, None::<&str>)?;
+                let menu = Menu::with_items(app, &[&show_item, &hide_item, &quit_item])?;
+                let _tray = TrayIconBuilder::with_id("tray")
+                    .icon(tray_icon)
+                    .menu(&menu)
+                    .show_menu_on_left_click(false)
+                    .on_menu_event(|app, event| match event.id.as_ref() {
+                        "show" => {
+                            if let Some(win) = app.get_webview_window("main") {
+                                let _ = win.show();
+                                let _ = win.set_focus();
+                            }
                         }
-                    }
-                    "hide" => {
-                        if let Some(win) = app.get_webview_window("main") {
-                            let _ = win.hide();
+                        "hide" => {
+                            if let Some(win) = app.get_webview_window("main") {
+                                let _ = win.hide();
+                            }
                         }
-                    }
-                    "quit" => {
-                        app.exit(0);
-                    }
-                    _ => {}
-                })
-                .on_tray_icon_event(|tray, event| match event {
-                    TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } => {
-                        let app = tray.app_handle();
-                        if let Some(w) = app.get_webview_window("main") {
-                            let visible = w.is_visible().unwrap_or(true);
-                            if visible {
-                                let _ = w.hide();
-                            } else {
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        _ => {}
+                    })
+                    .on_tray_icon_event(|tray, event| match event {
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            button_state: MouseButtonState::Up,
+                            ..
+                        } => {
+                            let app = tray.app_handle();
+                            if let Some(w) = app.get_webview_window("main") {
+                                let visible = w.is_visible().unwrap_or(true);
+                                if visible {
+                                    let _ = w.hide();
+                                } else {
+                                    let _ = w.unminimize();
+                                    let _ = w.show();
+                                    let _ = w.set_focus();
+                                }
+                            }
+                        }
+                        TrayIconEvent::DoubleClick { .. } => {
+                            let app = tray.app_handle();
+                            if let Some(w) = app.get_webview_window("main") {
                                 let _ = w.unminimize();
                                 let _ = w.show();
                                 let _ = w.set_focus();
                             }
                         }
-                    }
-                    TrayIconEvent::DoubleClick { .. } => {
-                        let app = tray.app_handle();
-                        if let Some(w) = app.get_webview_window("main") {
-                            let _ = w.unminimize();
-                            let _ = w.show();
-                            let _ = w.set_focus();
-                        }
-                    }
-                    _ => {}
-                })
-                .build(app)?;
+                        _ => {}
+                    })
+                    .build(app)?;
+            }
 
             #[cfg(desktop)]
             {
@@ -139,7 +143,7 @@ pub fn run() {
                     // Enable autostart
                     let _ = autostart_manager.enable();
                     // Check enable state
-                    tracing::info!(
+                    tracing::debug!(
                         "registered for autostart? {}",
                         autostart_manager.is_enabled().unwrap()
                     );
@@ -147,7 +151,7 @@ pub fn run() {
                     // Disable autostart
                     let _ = autostart_manager.disable();
                     // Check enable state
-                    tracing::info!(
+                    tracing::debug!(
                         "registered for autostart? {}",
                         autostart_manager.is_enabled().unwrap()
                     );
@@ -160,12 +164,13 @@ pub fn run() {
             // react to theme changes on THIS window
             if let WindowEvent::ThemeChanged(theme) = event {
                 let app = window.app_handle();
+                let Some(tray) = app.tray_by_id("tray") else {
+                    return;
+                };
                 let tray_icon_bytes = tray_icon_bytes(matches!(theme, tauri::Theme::Dark));
                 let tray_icon = tauri::image::Image::from_bytes(tray_icon_bytes)
                     .unwrap_or(app.default_window_icon().unwrap().clone());
-                if let Some(tray) = app.tray_by_id("tray") {
-                    let _ = tray.set_icon(Some(tray_icon));
-                }
+                let _ = tray.set_icon(Some(tray_icon));
             }
         })
         // Register commands
