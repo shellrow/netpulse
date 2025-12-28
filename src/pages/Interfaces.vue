@@ -425,11 +425,11 @@ const filtered = computed(() => {
                     </div>
                 </div>
                 <div>
-                <div class="text-surface-500 text-xs">DNS</div>
-                <div class="mt-1 flex flex-wrap gap-2">
-                    <Chip v-for="(d,i) in (selectedInterface?.dns_servers ?? [])" :key="'dns-'+i" :label="d" class="font-mono copyable" />
-                    <span v-if="(selectedInterface?.dns_servers?.length ?? 0) === 0">-</span>
-                </div>
+                  <div class="text-surface-500 text-xs">DNS</div>
+                  <div class="mt-1 flex flex-wrap gap-2">
+                      <Chip v-for="(d,i) in (selectedInterface?.dns_servers ?? [])" :key="'dns-'+i" :label="d" class="font-mono copyable" />
+                      <span v-if="(selectedInterface?.dns_servers?.length ?? 0) === 0">-</span>
+                  </div>
                 </div>
             </div>
             </div>

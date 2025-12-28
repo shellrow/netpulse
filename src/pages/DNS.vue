@@ -138,13 +138,13 @@ const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
           <template #title>SOA</template>
           <template #content>
               <DataTable v-if="data && (data.soa?.length ?? 0) > 0" :value="data.soa" size="small" class="text-sm copyable">
-              <Column field="mname" header="MNAME" />
-              <Column field="rname" header="RNAME" />
-              <Column field="serial" header="Serial" style="width: 120px" />
-              <Column field="refresh" header="Refresh" style="width: 110px" />
-              <Column field="retry" header="Retry" style="width: 100px" />
-              <Column field="expire" header="Expire" style="width: 110px" />
-              <Column field="minimum" header="Minimum" style="width: 120px" />
+                <Column field="mname" header="MNAME" />
+                <Column field="rname" header="RNAME" />
+                <Column field="serial" header="Serial" style="width: 120px" />
+                <Column field="refresh" header="Refresh" style="width: 110px" />
+                <Column field="retry" header="Retry" style="width: 100px" />
+                <Column field="expire" header="Expire" style="width: 110px" />
+                <Column field="minimum" header="Minimum" style="width: 120px" />
               </DataTable>
               <div v-else class="text-surface-500 text-sm">-</div>
           </template>
@@ -155,10 +155,10 @@ const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
           <template #title>SRV</template>
           <template #content>
               <DataTable v-if="data && (data.srv?.length ?? 0) > 0" :value="data.srv" size="small" class="text-sm copyable">
-              <Column field="priority" header="Priority" style="width: 100px" />
-              <Column field="weight" header="Weight" style="width: 100px" />
-              <Column field="port" header="Port" style="width: 100px" />
-              <Column field="target" header="Target" />
+                <Column field="priority" header="Priority" style="width: 100px" />
+                <Column field="weight" header="Weight" style="width: 100px" />
+                <Column field="port" header="Port" style="width: 100px" />
+                <Column field="target" header="Target" />
               </DataTable>
               <div v-else class="text-surface-500 text-sm">-</div>
           </template>
@@ -169,14 +169,14 @@ const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
           <template #title>TLSA</template>
           <template #content>
               <DataTable v-if="data && (data.tlsa?.length ?? 0) > 0" :value="data.tlsa" size="small" class="text-sm copyable">
-              <Column field="cert_usage" header="Usage" style="width: 90px" />
-              <Column field="selector" header="Selector" style="width: 100px" />
-              <Column field="matching" header="Matching" style="width: 100px" />
-              <Column header="Cert (base64)">
-                  <template #body="{ data: row }">
-                  <span class="font-mono break-all">{{ row.cert_data_base64 }}</span>
-                  </template>
-              </Column>
+                <Column field="cert_usage" header="Usage" style="width: 90px" />
+                <Column field="selector" header="Selector" style="width: 100px" />
+                <Column field="matching" header="Matching" style="width: 100px" />
+                <Column header="Cert (base64)">
+                    <template #body="{ data: row }">
+                    <span class="font-mono break-all">{{ row.cert_data_base64 }}</span>
+                    </template>
+                </Column>
               </DataTable>
               <div v-else class="text-surface-500 text-sm">-</div>
           </template>
@@ -187,12 +187,12 @@ const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
           <template #title>TXT</template>
           <template #content>
               <DataTable v-if="data && (data.txt?.length ?? 0) > 0" :value="data.txt" size="small" class="text-sm copyable">
-              <Column field="key" header="Key" style="width: 160px" />
-              <Column header="Value">
-                  <template #body="{ data: row }">
-                  <span class="font-mono break-all">{{ row.value }}</span>
-                  </template>
-              </Column>
+                <Column field="key" header="Key" style="width: 160px" />
+                <Column header="Value">
+                    <template #body="{ data: row }">
+                    <span class="font-mono break-all">{{ row.value }}</span>
+                    </template>
+                </Column>
               </DataTable>
               <div v-else class="text-surface-500 text-sm">-</div>
           </template>
@@ -203,14 +203,14 @@ const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
           <template #title>CERT</template>
           <template #content>
               <DataTable v-if="data && (data.cert?.length ?? 0) > 0" :value="data.cert" size="small" class="text-sm copyable">
-              <Column field="cert_type" header="Type" style="width: 90px" />
-              <Column field="key_tag" header="KeyTag" style="width: 100px" />
-              <Column field="algorithm" header="Alg" style="width: 80px" />
-              <Column header="Data (base64)">
-                  <template #body="{ data: row }">
-                  <span class="font-mono break-all">{{ row.cert_data_base64 }}</span>
-                  </template>
-              </Column>
+                <Column field="cert_type" header="Type" style="width: 90px" />
+                <Column field="key_tag" header="KeyTag" style="width: 100px" />
+                <Column field="algorithm" header="Alg" style="width: 80px" />
+                <Column header="Data (base64)">
+                    <template #body="{ data: row }">
+                    <span class="font-mono break-all">{{ row.cert_data_base64 }}</span>
+                    </template>
+                </Column>
               </DataTable>
               <div v-else class="text-surface-500 text-sm">-</div>
           </template>

@@ -400,7 +400,7 @@ onBeforeUnmount(() => {
               </div>
               <div v-if="serviceDetecting" class="mb-2 text-xs text-surface-500 flex items-center gap-2">
                 <i class="pi pi-spin pi-spinner"></i>
-                <span>Service detection in progress…</span>
+                <span>Service detection in progress...</span>
               </div>
               <div
                 v-if="report"
