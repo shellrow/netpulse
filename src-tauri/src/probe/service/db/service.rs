@@ -1,8 +1,14 @@
+use crate::{
+    model::endpoint::Port,
+    probe::service::probe::{
+        PortProbeDb, ProbePayload, ProbePayloadDb, ResponseSignature, ResponseSignaturesDb,
+        ServiceProbe,
+    },
+};
+use anyhow::Result;
 use ndb_tcp_service::TcpServiceDb;
 use ndb_udp_service::UdpServiceDb;
-use anyhow::Result;
 use std::{collections::HashMap, sync::OnceLock};
-use crate::{model::endpoint::Port, probe::service::probe::{PortProbeDb, ProbePayload, ProbePayloadDb, ResponseSignature, ResponseSignaturesDb, ServiceProbe}};
 
 pub static TCP_SERVICE_DB: OnceLock<TcpServiceDb> = OnceLock::new();
 pub static UDP_SERVICE_DB: OnceLock<UdpServiceDb> = OnceLock::new();
@@ -12,12 +18,16 @@ pub static RESPONSE_SIGNATURES_DB: OnceLock<Vec<ResponseSignature>> = OnceLock::
 
 /// Get a reference to the initialized TCP service database.
 pub fn tcp_service_db() -> &'static TcpServiceDb {
-    TCP_SERVICE_DB.get().expect("TCP_SERVICE_DB not initialized")
+    TCP_SERVICE_DB
+        .get()
+        .expect("TCP_SERVICE_DB not initialized")
 }
 
 /// Get a reference to the initialized UDP service database.
 pub fn udp_service_db() -> &'static UdpServiceDb {
-    UDP_SERVICE_DB.get().expect("UDP_SERVICE_DB not initialized")
+    UDP_SERVICE_DB
+        .get()
+        .expect("UDP_SERVICE_DB not initialized")
 }
 
 /// Get a reference to the initialized Port Probe database.
@@ -27,12 +37,16 @@ pub fn port_probe_db() -> &'static HashMap<Port, Vec<ServiceProbe>> {
 
 /// Get a reference to the initialized Service Probe database.
 pub fn service_probe_db() -> &'static HashMap<ServiceProbe, ProbePayload> {
-    SERVICE_PROBE_DB.get().expect("SERVICE_PROBE_DB not initialized")
+    SERVICE_PROBE_DB
+        .get()
+        .expect("SERVICE_PROBE_DB not initialized")
 }
 
 /// Get a reference to the initialized Response Signatures database.
 pub fn response_signatures_db() -> &'static Vec<ResponseSignature> {
-    RESPONSE_SIGNATURES_DB.get().expect("RESPONSE_SIGNATURES_DB not initialized")
+    RESPONSE_SIGNATURES_DB
+        .get()
+        .expect("RESPONSE_SIGNATURES_DB not initialized")
 }
 
 pub fn init_tcp_service_db() -> Result<()> {
@@ -55,7 +69,7 @@ pub fn init_udp_service_db() -> Result<()> {
 pub fn init_port_probe_db() -> Result<()> {
     let port_probe_db: PortProbeDb = serde_json::from_str(crate::resources::PORT_PROBES_JSON)
         .expect("Invalid port-probes.json format");
-    
+
     let mut map: HashMap<Port, Vec<ServiceProbe>> = HashMap::new();
     for (port, probes) in port_probe_db.map {
         let service_probes: Vec<ServiceProbe> = probes
@@ -75,12 +89,13 @@ pub fn init_port_probe_db() -> Result<()> {
 
 /// Initialize Service Probe database
 pub fn init_service_probe_db() -> Result<()> {
-    let probe_payload_db: ProbePayloadDb = serde_json::from_str(crate::resources::SERVICE_PROBES_JSON)
-        .expect("Invalid service-probes.json format");
+    let probe_payload_db: ProbePayloadDb =
+        serde_json::from_str(crate::resources::SERVICE_PROBES_JSON)
+            .expect("Invalid service-probes.json format");
     let mut service_probe_map: HashMap<ServiceProbe, ProbePayload> = HashMap::new();
     for probe_payload in probe_payload_db.probes {
-        let service_probe: ServiceProbe = ServiceProbe::from_str(&probe_payload.id)
-            .expect("Invalid service probe format");
+        let service_probe: ServiceProbe =
+            ServiceProbe::from_str(&probe_payload.id).expect("Invalid service probe format");
         service_probe_map.insert(service_probe, probe_payload);
     }
     SERVICE_PROBE_DB
@@ -91,8 +106,9 @@ pub fn init_service_probe_db() -> Result<()> {
 
 /// Initialize Response Signatures database
 pub fn init_response_signatures_db() -> Result<()> {
-    let response_signatures_db: ResponseSignaturesDb = serde_json::from_str(crate::resources::SERVICE_DB_JSON)
-        .expect("Invalid np-service-db.json format");
+    let response_signatures_db: ResponseSignaturesDb =
+        serde_json::from_str(crate::resources::SERVICE_DB_JSON)
+            .expect("Invalid np-service-db.json format");
     RESPONSE_SIGNATURES_DB
         .set(response_signatures_db.signatures)
         .map_err(|_| anyhow::anyhow!("Failed to set RESPONSE_SIGNATURES_DB in OnceLock"))?;

@@ -4,17 +4,21 @@ use netdev::Interface;
 use tauri::{AppHandle, Emitter};
 
 use crate::model::scan::{
-    HostScanReport, HostScanSetting, HostScanRequest, NeighborScanReport, PortScanProtocol, PortScanReport, PortScanSetting, TargetPortsPreset
+    HostScanReport, HostScanRequest, HostScanSetting, NeighborScanReport, PortScanProtocol,
+    PortScanReport, PortScanSetting, TargetPortsPreset,
 };
 
-use crate::probe::service::db::service::{PORT_PROBE_DB, RESPONSE_SIGNATURES_DB, SERVICE_PROBE_DB, TCP_SERVICE_DB, UDP_SERVICE_DB, init_port_probe_db, init_response_signatures_db, init_service_probe_db, init_tcp_service_db, init_udp_service_db};
-use crate::probe::service::db::tls::{TLS_OID_MAP, init_tls_oid_map};
+use crate::probe::service::db::service::{
+    init_port_probe_db, init_response_signatures_db, init_service_probe_db, init_tcp_service_db,
+    init_udp_service_db, PORT_PROBE_DB, RESPONSE_SIGNATURES_DB, SERVICE_PROBE_DB, TCP_SERVICE_DB,
+    UDP_SERVICE_DB,
+};
+use crate::probe::service::db::tls::{init_tls_oid_map, TLS_OID_MAP};
 
 #[tauri::command]
 pub async fn init_probe_db() -> Result<(), String> {
-
     // Initialize service databases if not already initialized
-    
+
     if TCP_SERVICE_DB.get().is_none() {
         init_tcp_service_db().map_err(|e| e.to_string())?;
     }
@@ -117,12 +121,12 @@ pub async fn host_scan(app: AppHandle, setting: HostScanRequest) -> Result<HostS
 }
 
 #[tauri::command]
-pub async fn neighbor_scan(app: AppHandle, iface_name: Option<String>) -> Result<NeighborScanReport, String> {
+pub async fn neighbor_scan(
+    app: AppHandle,
+    iface_name: Option<String>,
+) -> Result<NeighborScanReport, String> {
     let run_id = uuid::Uuid::new_v4().to_string();
-    let _ = app.emit(
-        "neighborscan:start",
-        run_id.clone(),
-    );
+    let _ = app.emit("neighborscan:start", run_id.clone());
     let iface = if let Some(name) = iface_name {
         netdev::get_interfaces()
             .into_iter()

@@ -30,7 +30,7 @@ pub async fn traceroute(app: AppHandle, setting: TracerouteSetting) -> Result<()
             IpAddr::V6(ipv6)
         }
     };
-    
+
     if let Err(e) = trace::traceroute(&app, src_ip, setting).await {
         // Emit error event
         let _ = app.emit(

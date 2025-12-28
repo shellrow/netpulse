@@ -1,14 +1,14 @@
-pub mod null;
+pub mod dns;
 pub mod generic;
 pub mod http;
-pub mod tls;
-pub mod dns;
+pub mod null;
 pub mod quic;
+pub mod tls;
 
-use std::{collections::BTreeMap, net::IpAddr, time::Duration};
-use serde::{Deserialize, Serialize};
-use crate::model::endpoint::TransportProtocol;
 use super::models::ServiceInfo;
+use crate::model::endpoint::TransportProtocol;
+use serde::{Deserialize, Serialize};
+use std::{collections::BTreeMap, net::IpAddr, time::Duration};
 
 /// Metadata for the database
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -67,9 +67,13 @@ impl ServiceProbe {
     /// Get the transport protocol associated with the ServiceProbe.
     pub fn transport(&self) -> TransportProtocol {
         match self {
-            ServiceProbe::TcpNull | ServiceProbe::TcpGenericLines | ServiceProbe::TcpHTTPGet
-            | ServiceProbe::TcpHTTPSGet | ServiceProbe::TcpHTTPOptions
-            | ServiceProbe::TcpDNSVersionBindReq | ServiceProbe::TcpHelp
+            ServiceProbe::TcpNull
+            | ServiceProbe::TcpGenericLines
+            | ServiceProbe::TcpHTTPGet
+            | ServiceProbe::TcpHTTPSGet
+            | ServiceProbe::TcpHTTPOptions
+            | ServiceProbe::TcpDNSVersionBindReq
+            | ServiceProbe::TcpHelp
             | ServiceProbe::TcpTlsSession => TransportProtocol::Tcp,
             ServiceProbe::UdpDNSVersionBindReq | ServiceProbe::UdpQuic => TransportProtocol::Udp,
         }
@@ -89,7 +93,7 @@ pub enum PayloadEncoding {
 pub struct PortProbeDb {
     pub meta: Meta,
     // port -> probe_id[]
-    pub map: BTreeMap<u16, Vec<String>>, 
+    pub map: BTreeMap<u16, Vec<String>>,
 }
 
 /// Definition of a probe payload

@@ -11,8 +11,8 @@ use tokio::sync::{oneshot, Mutex};
 use crate::model::endpoint::Host;
 use crate::model::scan::{HostScanProgress, HostScanReport, HostScanSetting, HostState};
 use crate::probe::packet::{build_icmp_echo_bytes, parse_icmp_echo_v4, parse_icmp_echo_v6};
-use crate::probe::scan::tuner::hosts_concurrency;
 use crate::probe::scan::progress::ThrottledProgress;
+use crate::probe::scan::tuner::hosts_concurrency;
 use crate::socket::icmp::{AsyncIcmpSocket, IcmpConfig, IcmpKind};
 use crate::socket::SocketFamily;
 
@@ -71,10 +71,8 @@ pub async fn host_scan(
     }
 
     let target_hosts: Vec<Host> = setting.resolve_targets().await;
-    let target_map : HashMap<IpAddr, Host> = target_hosts
-        .iter()
-        .map(|h| (h.ip, h.clone()))
-        .collect();
+    let target_map: HashMap<IpAddr, Host> =
+        target_hosts.iter().map(|h| (h.ip, h.clone())).collect();
 
     let total = target_map.len() as u32;
 
@@ -256,12 +254,12 @@ pub async fn host_scan(
                 if let Some(host) = target_map.get(&p.ip_addr) {
                     alive.push((host.clone(), p.rtt_ms.unwrap_or(0)));
                 }
-            },
+            }
             HostState::Unreachable => {
                 if let Some(host) = target_map.get(&p.ip_addr) {
                     unreachable.push(host.clone());
                 }
-            },
+            }
         }
     }
 

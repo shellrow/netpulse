@@ -2,7 +2,10 @@ use netdev::MacAddr;
 use serde::{Deserialize, Serialize};
 use std::{net::IpAddr, time::Duration};
 
-use crate::{model::endpoint::{Host, MaybeHost}, probe::service::models::ServiceInfo};
+use crate::{
+    model::endpoint::{Host, MaybeHost},
+    probe::service::models::ServiceInfo,
+};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum PortScanProtocol {
@@ -94,9 +97,15 @@ impl HostScanSetting {
                     return None;
                 }
                 if let Ok(ip) = t.parse::<IpAddr>() {
-                    Some(MaybeHost { ip: Some(ip), hostname: None })
+                    Some(MaybeHost {
+                        ip: Some(ip),
+                        hostname: None,
+                    })
                 } else {
-                    Some(MaybeHost { ip: None, hostname: Some(t.to_string()) })
+                    Some(MaybeHost {
+                        ip: None,
+                        hostname: Some(t.to_string()),
+                    })
                 }
             })
             .collect();

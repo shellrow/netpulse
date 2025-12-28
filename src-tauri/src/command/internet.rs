@@ -1,5 +1,5 @@
-use crate::net::internet::get_public_ip;
 use crate::model::IpInfoDual;
+use crate::net::internet::get_public_ip;
 
 /// Tauri command wrapper
 #[tauri::command]

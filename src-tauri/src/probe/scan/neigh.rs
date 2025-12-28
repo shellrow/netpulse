@@ -5,7 +5,11 @@ use tauri::{AppHandle, Emitter};
 
 use crate::model::scan::{NeighborHost, NeighborScanReport};
 
-pub async fn neighbor_scan(app: &AppHandle, run_id: &str, iface: netdev::Interface) -> Result<NeighborScanReport> {
+pub async fn neighbor_scan(
+    app: &AppHandle,
+    run_id: &str,
+    iface: netdev::Interface,
+) -> Result<NeighborScanReport> {
     //let iface = netdev::get_default_interface().map_err(|e| anyhow::anyhow!("Failed to get default interface: {}", e))?;
     let src_ipv4_opt = iface
         .ipv4_addrs()
@@ -29,8 +33,9 @@ pub async fn neighbor_scan(app: &AppHandle, run_id: &str, iface: netdev::Interfa
 
     // Perform host scan
     // hostscan:progress and hostscan:done events will be emitted during the scan
-    let hostscan_result = crate::probe::scan::icmp::host_scan(&app, &run_id, src_ipv4_opt, src_ipv6_opt, setting)
-        .await?;
+    let hostscan_result =
+        crate::probe::scan::icmp::host_scan(&app, &run_id, src_ipv4_opt, src_ipv6_opt, setting)
+            .await?;
 
     let neigh_table = crate::net::neigh::get_neighbor_table()?;
 
@@ -84,15 +89,11 @@ pub async fn neighbor_scan(app: &AppHandle, run_id: &str, iface: netdev::Interfa
 
     let total = hostscan_result.total;
 
-    let _ = app.emit(
-        "neighborscan:done",
-        run_id.to_string(),
-    );
+    let _ = app.emit("neighborscan:done", run_id.to_string());
 
-    Ok(NeighborScanReport{
+    Ok(NeighborScanReport {
         run_id: run_id.to_string(),
         neighbors,
         total,
     })
-
 }

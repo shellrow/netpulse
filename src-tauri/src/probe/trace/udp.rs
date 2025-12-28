@@ -2,10 +2,10 @@
 
 use anyhow::Result;
 use bytes::Bytes;
-use nex_packet::icmp::IcmpType;
-use nex_packet::icmpv6::Icmpv6Type;
-use nex_packet::icmpv6::Icmpv6Packet;
 use nex_packet::icmp::IcmpPacket;
+use nex_packet::icmp::IcmpType;
+use nex_packet::icmpv6::Icmpv6Packet;
+use nex_packet::icmpv6::Icmpv6Type;
 use nex_packet::ip::IpNextProtocol;
 use nex_packet::ipv4::Ipv4Packet;
 use nex_packet::packet::Packet;
@@ -66,12 +66,10 @@ pub async fn udp_traceroute(
 
         if dst_ip.is_ipv4() {
             ucfg.ttl = Some(ttl as u32);
-            ucfg.bind_addr =
-                Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0));
+            ucfg.bind_addr = Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0));
         } else {
             ucfg.hoplimit = Some(ttl as u32);
-            ucfg.bind_addr =
-                Some(SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0));
+            ucfg.bind_addr = Some(SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0));
         }
 
         let udp = AsyncUdpSocket::from_config(&ucfg)?;
@@ -86,8 +84,9 @@ pub async fn udp_traceroute(
         };
 
         for t in 0..setting.tries_per_hop {
-            let dst_port =
-                DEFAULT_BASE_TARGET_UDP_PORT.wrapping_add(ttl as u16).wrapping_add(t as u16);
+            let dst_port = DEFAULT_BASE_TARGET_UDP_PORT
+                .wrapping_add(ttl as u16)
+                .wrapping_add(t as u16);
             let target = SocketAddr::new(dst_ip, dst_port);
             let payload = Bytes::from_static(b"np:trace-udp");
 

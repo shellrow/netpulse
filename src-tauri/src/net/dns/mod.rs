@@ -62,13 +62,9 @@ pub async fn reverse_lookup(ip: IpAddr, timeout: Duration) -> Option<String> {
 /// - Hostnames may resolve to multiple IPs; all are returned.
 /// - Duplicate IPs are removed while preserving input order as much as possible.
 /// - Resolution runs concurrently with a bounded concurrency limit.
-pub async fn resolve_hosts(
-    inputs: &[String],
-    timeout: Duration,
-    concurrency: usize,
-) -> Vec<Host> {
+pub async fn resolve_hosts(inputs: &[String], timeout: Duration, concurrency: usize) -> Vec<Host> {
     let concurrency = concurrency.max(1);
-    
+
     let mut out: Vec<Host> = Vec::new();
     let mut seen: HashSet<IpAddr> = HashSet::new();
 
@@ -100,7 +96,10 @@ pub async fn resolve_hosts(
     while let Some((hn, ips)) = st.next().await {
         for ip in ips {
             if seen.insert(ip) {
-                out.push(Host { ip, hostname: Some(hn.clone()) });
+                out.push(Host {
+                    ip,
+                    hostname: Some(hn.clone()),
+                });
             }
         }
     }

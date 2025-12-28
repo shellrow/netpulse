@@ -9,8 +9,8 @@ use tauri::{AppHandle, Emitter};
 use crate::model::endpoint::Endpoint;
 use crate::model::scan::{PortScanReport, PortScanSample, PortScanSetting, PortState};
 use crate::probe::scan::expand_ports;
-use crate::probe::scan::tuner::ports_concurrency;
 use crate::probe::scan::progress::ThrottledProgress;
+use crate::probe::scan::tuner::ports_concurrency;
 use crate::probe::service::{ServiceDetector, ServiceProbeConfig};
 
 pub async fn port_scan(
@@ -141,10 +141,7 @@ pub async fn port_scan(
 
     // Service detection
     if setting.service_detection && !open_samples.is_empty() {
-        let _ = app.emit(
-            "portscan:service_detection_start",
-            run_id.to_string(),
-        );
+        let _ = app.emit("portscan:service_detection_start", run_id.to_string());
         let service_probe_setting = ServiceProbeConfig {
             timeout: Duration::from_secs(2),
             max_concurrency: 100,
@@ -164,14 +161,15 @@ pub async fn port_scan(
         let active_endpoints: Vec<Endpoint> = vec![endpoint];
         let service_result = detector.run_service_detection(active_endpoints).await?;
         for sample in &mut open_samples {
-            if let Some(res) = service_result.results.iter().find(|r| r.port == sample.port) {
+            if let Some(res) = service_result
+                .results
+                .iter()
+                .find(|r| r.port == sample.port)
+            {
                 sample.service_info = Some(res.service_info.clone());
             }
         }
-        let _ = app.emit(
-            "portscan:service_detection_done",
-            run_id.to_string(),
-        );
+        let _ = app.emit("portscan:service_detection_done", run_id.to_string());
     }
 
     let report = PortScanReport {

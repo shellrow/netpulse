@@ -2,11 +2,11 @@ use std::net::IpAddr;
 
 use crate::net::dns::resolver::DnsResolver;
 use crate::{
-    net::dns,
     model::{
         dns::{Domain, DomainLookupInfo},
         endpoint::Host,
     },
+    net::dns,
 };
 
 #[tauri::command]
