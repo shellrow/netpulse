@@ -65,13 +65,21 @@ pub fn calc_scan_concurrency(profile: ScanProfile) -> ScanConcurrency {
 
     let os_factor_hosts: f32 = {
         #[cfg(target_os = "windows")]
-        { 0.8 }
+        {
+            0.8
+        }
         #[cfg(target_os = "linux")]
-        { 1.0 }
+        {
+            1.0
+        }
         #[cfg(target_os = "macos")]
-        { 1.2 }
+        {
+            1.2
+        }
         #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
-        { 1.0 }
+        {
+            1.0
+        }
     };
 
     let mut hosts = (base_hosts as f32 * os_factor_hosts * profile.factor()) as usize;
@@ -82,13 +90,21 @@ pub fn calc_scan_concurrency(profile: ScanProfile) -> ScanConcurrency {
 
     let os_factor_ports: f32 = {
         #[cfg(target_os = "windows")]
-        { 0.6 }
+        {
+            0.6
+        }
         #[cfg(target_os = "linux")]
-        { 1.0 }
+        {
+            1.0
+        }
         #[cfg(target_os = "macos")]
-        { 1.3 }
+        {
+            1.3
+        }
         #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
-        { 1.0 }
+        {
+            1.0
+        }
     };
 
     let mut ports = (base_ports as f32 * os_factor_ports * profile.factor()) as usize;

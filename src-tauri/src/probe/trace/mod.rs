@@ -67,11 +67,7 @@ fn sanitize_setting(mut setting: TracerouteSetting) -> TracerouteSetting {
 }
 
 /// Entry point called from Tauri command
-pub async fn traceroute(
-    app: &AppHandle,
-    src_ip: IpAddr,
-    setting: TracerouteSetting,
-) -> Result<()> {
+pub async fn traceroute(app: &AppHandle, src_ip: IpAddr, setting: TracerouteSetting) -> Result<()> {
     let setting = sanitize_setting(setting);
 
     app.emit("traceroute:start", &setting).ok();

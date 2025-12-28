@@ -2,14 +2,14 @@ mod app;
 mod command;
 mod config;
 mod fs;
-mod net;
 mod log;
 mod model;
+mod net;
 mod probe;
+mod resources;
 mod service;
 mod socket;
 mod state;
-mod resources;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

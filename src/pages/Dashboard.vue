@@ -10,6 +10,7 @@ import { useScrollPanelHeight } from "../composables/useScrollPanelHeight";
 import { usePrivacyGate } from "../composables/usePrivacyGate";
 import type { ChartData, ChartOptions } from "chart.js";
 import { hexToRgba } from "../utils/color";
+import { readBpsUnit, type UnitPref } from "../utils/preferences";
 
 // @ts-ignore -- used in template refs
 const { wrapRef, toolbarRef, panelHeight } = useScrollPanelHeight();
@@ -20,15 +21,10 @@ const loading = ref(false);
 const ifaces = ref<NetworkInterface[]>([]);
 const sys = ref<SysInfo | null>(null);
 
-type UnitPref = "bytes" | "bits";
-const LS_BPS_UNIT = "np:set:bps_unit";
-const bpsUnit = ref<UnitPref>(
-  (localStorage.getItem(LS_BPS_UNIT) as UnitPref) || "bytes",
-);
+const bpsUnit = ref<UnitPref>(readBpsUnit(localStorage));
 
 function refreshUnitPref() {
-  const v = (localStorage.getItem(LS_BPS_UNIT) as UnitPref) || "bytes";
-  bpsUnit.value = v === "bits" ? "bits" : "bytes";
+  bpsUnit.value = readBpsUnit(localStorage);
 }
 const rxLabel = computed(() =>
   bpsUnit.value === "bits" ? "RX bps" : "RX B/s",
@@ -482,7 +478,7 @@ onBeforeUnmount(() => {
                         <div>
                           <span class="text-surface-500">MAC:</span>
                           <span
-                            class="font-mono"
+                            class="font-mono copyable"
                             :class="{ 'text-surface-500': !publicIpVisible }"
                           >
                             {{ maskMac(defaultIface.mac_addr) }}
@@ -583,7 +579,7 @@ onBeforeUnmount(() => {
                           v-for="(v, i) in defaultIface.ipv4 ?? []"
                           :key="'v4-' + i"
                           :label="maskIpLabel(v)"
-                          :class="['font-mono', !publicIpVisible && 'text-surface-500']"
+                          :class="['font-mono', 'copyable', !publicIpVisible && 'text-surface-500']"
                         />
                         <span
                           v-if="(defaultIface.ipv4?.length ?? 0) === 0"
@@ -598,7 +594,7 @@ onBeforeUnmount(() => {
                           v-for="(v, i) in defaultIface.ipv6 ?? []"
                           :key="'v6-' + i"
                           :label="maskIpLabel(v)"
-                          :class="['font-mono', !publicIpVisible && 'text-surface-500']"
+                          :class="['font-mono', 'copyable', !publicIpVisible && 'text-surface-500']"
                         />
                         <span
                           v-if="(defaultIface.ipv6?.length ?? 0) === 0"
@@ -629,16 +625,17 @@ onBeforeUnmount(() => {
                         <div class="text-surface-500 text-xs">Gateway</div>
                         <div class="mt-1">
                           <template v-if="defaultIface.gateway">
-                            <div
-                              class="font-mono"
+                            MAC: 
+                            <span
+                              class="font-mono copyable"
                               :class="{ 'text-surface-500': !publicIpVisible }"
                             >
-                              MAC: {{ maskMac(defaultIface.gateway.mac_addr) }}
-                            </div>
+                              {{ maskMac(defaultIface.gateway.mac_addr) }}
+                            </span>
                             <div v-if="defaultIface.gateway.ipv4.length > 0">
                               IPv4:
                               <span
-                                class="font-mono"
+                                class="font-mono copyable"
                                 :class="{ 'text-surface-500': !publicIpVisible }"
                               >
                                 {{ pubIpGate(defaultIface.gateway.ipv4.join(", ")) }}
@@ -647,7 +644,7 @@ onBeforeUnmount(() => {
                             <div v-if="defaultIface.gateway.ipv6.length > 0">
                               IPv6:
                               <span
-                                class="font-mono"
+                                class="font-mono copyable"
                                 :class="{ 'text-surface-500': !publicIpVisible }"
                               >
                                 {{ pubIpGate(defaultIface.gateway.ipv6.join(", ")) }}
@@ -664,7 +661,7 @@ onBeforeUnmount(() => {
                             v-for="(d, i) in defaultIface.dns_servers ?? []"
                             :key="'dns-' + i"
                             :label="d"
-                            class="font-mono"
+                            class="font-mono copyable"
                           />
                           <span
                             v-if="(defaultIface.dns_servers?.length ?? 0) === 0"
@@ -721,12 +718,6 @@ onBeforeUnmount(() => {
                     </div>
                     <div class="grid grid-cols-3 gap-2 text-xs">
                       <div>
-                        <div class="text-surface-500 text-[11px]">MIN</div>
-                        <div class="font-semibold text-sm">
-                          {{ formatStat(rxStats?.min) }}
-                        </div>
-                      </div>
-                      <div>
                         <div class="text-surface-500 text-[11px]">AVG</div>
                         <div class="font-semibold text-sm">
                           {{ formatStat(rxStats?.avg) }}
@@ -747,12 +738,6 @@ onBeforeUnmount(() => {
                       {{ txLabel }} stats
                     </div>
                     <div class="grid grid-cols-3 gap-2 text-xs">
-                      <div>
-                        <div class="text-surface-500 text-[11px]">MIN</div>
-                        <div class="font-semibold text-sm">
-                          {{ formatStat(txStats?.min) }}
-                        </div>
-                      </div>
                       <div>
                         <div class="text-surface-500 text-[11px]">AVG</div>
                         <div class="font-semibold text-sm">

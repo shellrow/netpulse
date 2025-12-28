@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Service information detected on a port
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

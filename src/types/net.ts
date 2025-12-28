@@ -103,16 +103,29 @@ export function formatBytes(v: number): string {
   return `${n.toFixed(n >= 100 ? 0 : n >= 10 ? 1 : 2)} ${u[i]}`;
 }
 
-export function toDate(ts: SystemTimeJson): Date {
-  if (typeof ts === "string") return new Date(ts);
-  if (typeof ts === "number") return new Date(ts);
-  if ("secs_since_epoch" in ts) {
-    const ms = ts.secs_since_epoch * 1000 + Math.round((ts.nanos_since_epoch ?? 0) / 1e6);
-    return new Date(ms);
+export function toDate(ts: unknown): Date {
+  if (ts == null) return new Date(NaN);
+
+  if (typeof ts === "string" || typeof ts === "number") {
+    return new Date(ts);
   }
-  if ("tv_sec" in ts) {
-    const ms = ts.tv_sec * 1000 + Math.round((ts.tv_nsec ?? 0) / 1e6);
-    return new Date(ms);
+
+  if (typeof ts === "object") {
+    // SystemTimeJson: { secs_since_epoch, nanos_since_epoch? }
+    if ("secs_since_epoch" in ts) {
+      const o = ts as { secs_since_epoch: number; nanos_since_epoch?: number | null };
+      const ms =
+        o.secs_since_epoch * 1000 + Math.round((o.nanos_since_epoch ?? 0) / 1e6);
+      return new Date(ms);
+    }
+
+    // timespec: { tv_sec, tv_nsec? }
+    if ("tv_sec" in ts) {
+      const o = ts as { tv_sec: number; tv_nsec?: number | null };
+      const ms = o.tv_sec * 1000 + Math.round((o.tv_nsec ?? 0) / 1e6);
+      return new Date(ms);
+    }
   }
+
   return new Date(NaN);
 }

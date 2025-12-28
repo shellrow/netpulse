@@ -114,6 +114,7 @@ onBeforeUnmount(() => {
     <!-- Table -->
     <DataTable
       :value="filtered"
+      size="small"
       :loading="loading"
       paginator
       :rows="20"
@@ -121,7 +122,7 @@ onBeforeUnmount(() => {
       sortMode="single"
       scrollable
       :scrollHeight="tableHeight"
-      class="text-sm"
+      class="text-sm copyable"
       stripedRows 
       resizableColumns 
       columnResizeMode="fit"

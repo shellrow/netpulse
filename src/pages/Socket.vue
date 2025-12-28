@@ -266,6 +266,7 @@ onBeforeUnmount(() => {
     <!-- Table -->
     <DataTable
       :value="tableRows"
+      size="small"
       :loading="loading"
       :rowKey="rowKey"
       paginator
@@ -273,7 +274,7 @@ onBeforeUnmount(() => {
       :rowsPerPageOptions="[20, 50, 100]"
       scrollable
       :scrollHeight="tableHeight"
-      class="text-sm"
+      class="text-sm copyable"
       stripedRows
       sortMode="single"
       resizableColumns 

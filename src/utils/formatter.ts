@@ -11,7 +11,8 @@ export function fmtIfType(t?: string) {
   return t ?? "Unknown";
 }
 
-export function fmtDate(ts: any) {
+export function fmtDate(ts: unknown): string {
+  if (ts == null) return "-";
   const d = toDate(ts);
   return isNaN(+d) ? "-" : d.toLocaleString();
 }

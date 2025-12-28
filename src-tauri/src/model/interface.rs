@@ -81,7 +81,10 @@ fn stats_from_netdev(st: &netdev::stats::counters::InterfaceStats) -> TrafficSta
 
 impl From<netdev::Interface> for NetworkInterface {
     fn from(iface: netdev::Interface) -> Self {
-        let display_name = iface.friendly_name.clone().unwrap_or_else(|| iface.name.clone());
+        let display_name = iface
+            .friendly_name
+            .clone()
+            .unwrap_or_else(|| iface.name.clone());
         let stats = iface
             .stats
             .as_ref()

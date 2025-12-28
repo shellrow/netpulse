@@ -212,7 +212,7 @@ onBeforeUnmount(() => {
                   :value="report.neighbors"
                   size="small"
                   stripedRows
-                  class="text-sm"
+                  class="text-sm copyable"
                   :rows="10"
                   paginator
                   :rowsPerPageOptions="[10, 20, 50]"

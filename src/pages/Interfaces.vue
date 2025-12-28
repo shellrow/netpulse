@@ -5,19 +5,17 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import type { NetworkInterface } from "../types/net"; 
 import { ipListToString, formatBps, formatBytesPerSec, formatBytes } from "../types/net"; 
 import { DataTableRowSelectEvent } from 'primevue/datatable';
-import { fmtIfType, fmtDate, hexFlags, severityByOper, shortenIpList} from "../utils/formatter";
+import { fmtIfType, hexFlags, severityByOper, shortenIpList} from "../utils/formatter";
+import { readBpsUnit, type UnitPref } from "../utils/preferences";
 
 const wrapRef = ref<HTMLElement|null>(null);
 const toolbarRef = ref<HTMLElement|null>(null);
 const tableHeight = ref("400px");  
 
-type UnitPref = "bytes" | "bits";
-const LS_BPS_UNIT = "np:set:bps_unit";
-const bpsUnit = ref<UnitPref>((localStorage.getItem(LS_BPS_UNIT) as UnitPref) || "bytes");
+const bpsUnit = ref<UnitPref>(readBpsUnit(localStorage));
 
 function refreshUnitPref() {
-  const v = (localStorage.getItem(LS_BPS_UNIT) as UnitPref) || "bytes";
-  bpsUnit.value = v === "bits" ? "bits" : "bytes";
+  bpsUnit.value = readBpsUnit(localStorage);
 }
 
 let ro: ResizeObserver | null = null;
@@ -78,7 +76,6 @@ const visibleColumns = ref<string[]>([
   "ipv6",
   "rx_bytes_per_sec",
   "tx_bytes_per_sec",
-  "mtu",
   "mac",
 ]);
 
@@ -176,7 +173,6 @@ const filtered = computed(() => {
         ipListToString(r.ipv4),
         ipListToString(r.ipv6),
         r.mac_addr ?? "",
-        String(r.mtu ?? ""),
       ]
         .join(" ")
         .toLowerCase();
@@ -248,6 +244,7 @@ const filtered = computed(() => {
     <DataTable
       :value="filtered"
       :loading="loading"
+      size="small"
       dataKey="index"
       paginator
       :rows="15"
@@ -255,7 +252,7 @@ const filtered = computed(() => {
       sortMode="single"
       scrollable
       :scrollHeight="tableHeight"
-      class="text-sm"
+      class="text-sm copyable"
       stripedRows
       selectionMode="single"
       @rowSelect="onRowSelect"
@@ -348,7 +345,7 @@ const filtered = computed(() => {
                 <div><span class="text-surface-500">Type:</span> <span>{{ fmtIfType(selectedInterface?.if_type) }}</span></div>
                 <div><span class="text-surface-500">Friendly:</span> <span>{{ selectedInterface?.friendly_name ?? '-' }}</span></div>
                 <div><span class="text-surface-500">Description:</span> <span>{{ selectedInterface?.description ?? '-' }}</span></div>
-                <div><span class="text-surface-500">MAC:</span> <span class="font-mono">{{ selectedInterface?.mac_addr ?? '-' }}</span></div>
+                <div><span class="text-surface-500">MAC:</span> <span class="font-mono copyable">{{ selectedInterface?.mac_addr ?? '-' }}</span></div>
                 <div><span class="text-surface-500">MTU:</span> <span>{{ selectedInterface?.mtu ?? '-' }}</span></div>
                 <div><span class="text-surface-500">Flags:</span> <span class="font-mono">{{ hexFlags(selectedInterface?.flags) }}</span></div>
                 </div>
@@ -374,9 +371,6 @@ const filtered = computed(() => {
                     <div class="font-mono">{{ formatBytes(selectedInterface?.stats?.tx_bytes || 0) }}</div>
                 </div>
                 </div>
-                <div class="text-xs text-surface-500 mt-2">
-                Snapshot: {{ selectedInterface?.stats?.timestamp ? fmtDate(selectedInterface?.stats?.timestamp) : '-' }}
-                </div>
                 <div class="text-xs text-surface-500 mt-1">
                 Link Speed:
                 <span v-if="selectedInterface?.receive_speed">RX {{ formatBps(selectedInterface?.receive_speed) }}</span>
@@ -393,14 +387,14 @@ const filtered = computed(() => {
             <div class="mb-2">
                 <span class="text-surface-500 text-xs">IPv4</span>
                 <div class="mt-1 flex flex-wrap gap-2">
-                <Chip v-for="(v,i) in (selectedInterface?.ipv4 ?? [])" :key="'v4-'+i" :label="typeof v==='string' ? v : `${v.addr}/${v.prefix_len}`" class="font-mono" />
+                <Chip v-for="(v,i) in (selectedInterface?.ipv4 ?? [])" :key="'v4-'+i" :label="typeof v==='string' ? v : `${v.addr}/${v.prefix_len}`" class="font-mono copyable" />
                 <span v-if="(selectedInterface?.ipv4?.length ?? 0) === 0">-</span>
                 </div>
             </div>
             <div>
                 <span class="text-surface-500 text-xs">IPv6</span>
                 <div class="mt-1 flex flex-wrap gap-2">
-                <Chip v-for="(v,i) in (selectedInterface?.ipv6 ?? [])" :key="'v6-'+i" :label="typeof v==='string' ? v : `${v.addr}/${v.prefix_len}`" class="font-mono" />
+                <Chip v-for="(v,i) in (selectedInterface?.ipv6 ?? [])" :key="'v6-'+i" :label="typeof v==='string' ? v : `${v.addr}/${v.prefix_len}`" class="font-mono copyable" />
                 <span v-if="(selectedInterface?.ipv6?.length ?? 0) === 0">-</span>
                 </div>
                 <div class="text-xs text-surface-500 mt-2" v-if="(selectedInterface?.ipv6_scope_ids?.length ?? 0) > 0">
@@ -416,23 +410,24 @@ const filtered = computed(() => {
                     <div class="text-surface-500 text-xs">Gateway</div>
                     <div class="mt-1">
                         <div v-if="selectedInterface?.gateway">
-                        <div class="font-mono">MAC: {{ selectedInterface.gateway.mac_addr }}</div>
+                        MAC: 
+                        <span class="font-mono copyable">{{ selectedInterface.gateway.mac_addr }}</span>
                         <div v-if="selectedInterface.gateway.ipv4.length > 0">
-                            IPv4: <span class="font-mono">{{ selectedInterface.gateway.ipv4.join(', ') }}</span>
+                            IPv4: <span class="font-mono copyable">{{ selectedInterface.gateway.ipv4.join(', ') }}</span>
                         </div>
                         <div v-if="selectedInterface.gateway.ipv6.length > 0">
-                            IPv6: <span class="font-mono">{{ selectedInterface.gateway.ipv6.join(', ') }}</span>
+                            IPv6: <span class="font-mono copyable">{{ selectedInterface.gateway.ipv6.join(', ') }}</span>
                         </div>
                         </div>
                         <span v-else>-</span>
                     </div>
                 </div>
                 <div>
-                <div class="text-surface-500 text-xs">DNS</div>
-                <div class="mt-1 flex flex-wrap gap-2">
-                    <Chip v-for="(d,i) in (selectedInterface?.dns_servers ?? [])" :key="'dns-'+i" :label="d" class="font-mono" />
-                    <span v-if="(selectedInterface?.dns_servers?.length ?? 0) === 0">-</span>
-                </div>
+                  <div class="text-surface-500 text-xs">DNS</div>
+                  <div class="mt-1 flex flex-wrap gap-2">
+                      <Chip v-for="(d,i) in (selectedInterface?.dns_servers ?? [])" :key="'dns-'+i" :label="d" class="font-mono copyable" />
+                      <span v-if="(selectedInterface?.dns_servers?.length ?? 0) === 0">-</span>
+                  </div>
                 </div>
             </div>
             </div>

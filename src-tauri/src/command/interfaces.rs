@@ -1,8 +1,8 @@
 use crate::model::interface::{NetworkInterface, TrafficStats};
 use crate::state::SharedState;
 use anyhow::Result;
-use netdev::Interface;
 use netdev::ipnet::Ipv4Net;
+use netdev::Interface;
 use std::collections::HashMap;
 use std::time::SystemTime;
 use tauri::{AppHandle, Emitter, State};
@@ -110,8 +110,8 @@ pub async fn get_network_address_map() -> Result<HashMap<String, Ipv4Net>, Strin
             iface.name.clone()
         };
         if let Some(ipv4) = iface.ipv4.first() {
-            let network = Ipv4Net::new(ipv4.network(), ipv4.prefix_len())
-                .map_err(|e| e.to_string())?;
+            let network =
+                Ipv4Net::new(ipv4.network(), ipv4.prefix_len()).map_err(|e| e.to_string())?;
             map.insert(name, network);
         }
     }

@@ -16,14 +16,14 @@ Inspect, monitor, and analyze your network.
 ## Features
 
 - **Interface Overview** - Active interfaces with IPs, gateways, and real-time stats  
-- **Live Traffic Charts** - RX/TX throughput and MIN/AVG/MAX
+- **Live Traffic Charts** - RX/TX throughput and AVG/MAX
 - **Neighbor Scan** - Discover devices in your local network
 - **Net Route** - Inspect routing tables, gateways, and metrics  
 - **Socket Connection** - View active TCP/UDP sockets with process information  
 - **Public IP Info** - Detect IPv4 / IPv6, ASN, and country  
 - **Ping (ICMP / TCP / UDP / QUIC)** - Measure latency and reachability across protocols  
 - **Traceroute (ICMP / UDP)** - Per-hop RTT with detailed hop visualization
-- **Port Scan** - Detect open ports (Common, Top1000, or custom sets)  
+- **Port Scan** - Detect open ports and services (Common, Top1000, or custom sets)  
 - **Host Scan** - Scan your network to identify alive hosts  
 - **Cross-Platform** - macOS, Windows, and Linux supported  
 
@@ -62,5 +62,6 @@ cargo tauri build
 
 ## Screenshots
 ![NetPulse Dashboard](resources/ss/np-dashboard.png)
+![NetPulse Monitor](resources/ss/np-monitor.png)
 ![NetPulse Traceroute](resources/ss/np-traceroute.png)
 ![NetPulse Neighbor](resources/ss/np-neighbor.png)

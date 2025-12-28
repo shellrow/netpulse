@@ -251,7 +251,7 @@ function fmtMs(v?: number | null) {
                 :value="samples"
                 size="small"
                 stripedRows
-                class="text-sm"
+                class="text-sm copyable"
                 :rows="10"
                 paginator
                 :rowsPerPageOptions="[10,20,50]"
@@ -292,7 +292,7 @@ function fmtMs(v?: number | null) {
                 </div>
                 <div class="rounded-lg bg-surface-50 dark:bg-surface-900 p-3">
                   <div class="text-surface-500 text-xs">Target</div>
-                  <div class="font-mono break-all">
+                  <div class="font-mono break-all copyable">
                     {{ stat?.hostname ? `${stat.hostname} (${stat.ip_addr})` : form.host }}
                   </div>
                 </div>
