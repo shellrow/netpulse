@@ -718,12 +718,6 @@ onBeforeUnmount(() => {
                     </div>
                     <div class="grid grid-cols-3 gap-2 text-xs">
                       <div>
-                        <div class="text-surface-500 text-[11px]">MIN</div>
-                        <div class="font-semibold text-sm">
-                          {{ formatStat(rxStats?.min) }}
-                        </div>
-                      </div>
-                      <div>
                         <div class="text-surface-500 text-[11px]">AVG</div>
                         <div class="font-semibold text-sm">
                           {{ formatStat(rxStats?.avg) }}
@@ -744,12 +738,6 @@ onBeforeUnmount(() => {
                       {{ txLabel }} stats
                     </div>
                     <div class="grid grid-cols-3 gap-2 text-xs">
-                      <div>
-                        <div class="text-surface-500 text-[11px]">MIN</div>
-                        <div class="font-semibold text-sm">
-                          {{ formatStat(txStats?.min) }}
-                        </div>
-                      </div>
                       <div>
                         <div class="text-surface-500 text-[11px]">AVG</div>
                         <div class="font-semibold text-sm">
