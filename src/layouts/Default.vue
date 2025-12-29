@@ -219,7 +219,7 @@ onMounted(async () => {
           class="text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
         >
           <i class="pi pi-github text-xs"></i>
-          shellrow
+          shellrow (Shintaro Ito)
         </a>
       </div>
       <div class="flex items-center gap-2">
@@ -247,7 +247,7 @@ onMounted(async () => {
         </a>
       </div>
       <div class="pt-2 text-xs text-surface-500">
-        © {{ new Date().getFullYear() }} shellrow. All rights reserved.
+        © {{ new Date().getFullYear() }} shellrow (Shintaro Ito). All rights reserved.
       </div>
     </div>
     <template #footer>

@@ -30,6 +30,8 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "Shintaro Ito",
+    "shortDescription": "Cross-platform network diagnostic suite"
   }
 }
